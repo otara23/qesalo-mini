@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="ka">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ქესალო</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Georgian:wght@400;500;700&display=swap">
+<style>
+/* TIM mini-app tokens (tim-dashboard/src/app/mini/ui-css.js) - same look, light + dark */
+:root{--tim-canvas:#F2F5F8;--tim-surface:#FFFFFF;--tim-surface-2:#EEF2F6;--tim-hair:#E2E8EF;--tim-hair-strong:#C9D3DE;--tim-ink:#14233A;--tim-ink-2:#3E4F63;--tim-muted:#66768A;--tim-faint:#94A1B2;--tim-navy:#1A375C;--tim-navy-50:#EAF0F6;--tim-navy-100:#D5E0EB;--tim-blue:#277BA6;--tim-blue-50:#E7F2F8;--tim-red:#E11D1D;--tim-red-50:#FDECEC;--tim-band:#DDF0E4;--tim-band-ink:#2E7D4F;--tim-on-brand:#FFFFFF;--tim-skel-hi:#F6F8FA;--tim-success:#177031;--tim-danger:#B81822;--tim-warning:#8A6D0A;--tim-warn-50:#FBF3DC;--tim-ff:'Noto Sans Georgian',system-ui,sans-serif}
+:root[data-theme="dark"]{--tim-canvas:#0F1620;--tim-surface:#18212D;--tim-surface-2:#212B39;--tim-hair:#2A3545;--tim-hair-strong:#3A4759;--tim-ink:#EEF2F7;--tim-ink-2:#C5CFDB;--tim-muted:#8E9CAE;--tim-faint:#66768A;--tim-navy:#9DC3EC;--tim-navy-50:#1E2E42;--tim-navy-100:#243A55;--tim-blue:#6FB3D9;--tim-blue-50:#1C3242;--tim-red:#FF5C5C;--tim-red-50:#3A1F22;--tim-band:#1F3A2C;--tim-band-ink:#7FCB9B;--tim-on-brand:#0F1620;--tim-skel-hi:#2A3545;--tim-success:#6FD08C;--tim-danger:#FF7B7B;--tim-warning:#E6C35C;--tim-warn-50:#3A3220}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--tim-canvas)}
+body{font-family:var(--tim-ff);font-variant-numeric:tabular-nums;color:var(--tim-ink);line-height:1.35;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+.app{max-width:560px;margin:0 auto;padding:0 16px calc(24px + env(safe-area-inset-bottom))}
+.top{position:sticky;top:0;z-index:5;background:var(--tim-canvas);padding:12px 0 0;margin:0 -16px;padding-left:16px;padding-right:16px}
+.brand{display:flex;align-items:center;gap:10px;min-height:44px}
+.logo{width:36px;height:36px;border-radius:10px;background:var(--tim-band);color:var(--tim-band-ink);display:grid;place-items:center;font-weight:700;font-size:17px;flex:0 0 auto}
+.brand-t{font-size:17px;font-weight:700;line-height:1.2}
+.brand-s{font-size:13px;color:var(--tim-muted)}
+.brand-r{margin-left:auto;text-align:right;font-size:12px;color:var(--tim-faint);white-space:nowrap}
+.tabs{display:flex;gap:8px;overflow-x:auto;padding:12px 0 10px;scrollbar-width:none;touch-action:pan-x;border-bottom:1px solid var(--tim-hair)}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;min-height:40px;padding:0 14px;border-radius:12px;background:var(--tim-surface);box-shadow:inset 0 0 0 1px var(--tim-hair);font:500 13px var(--tim-ff);color:var(--tim-ink-2);border:0;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.tab.on{background:var(--tim-navy);color:var(--tim-on-brand);box-shadow:none}
+.tab .b{min-width:18px;height:18px;border-radius:9px;background:var(--tim-red);color:#fff;font-size:11px;font-weight:700;display:inline-grid;place-items:center;padding:0 5px}
+.card{background:var(--tim-surface);border-radius:16px;padding:4px 16px 8px;margin-top:12px;box-shadow:inset 0 0 0 1px var(--tim-hair)}
+.card-h{display:flex;align-items:center;min-height:48px;gap:8px}
+.card-t{font-size:15px;font-weight:700;flex:1 1 auto;min-width:0}
+.card-n{font-size:12px;color:var(--tim-muted);white-space:nowrap}
+.hero{padding:14px 16px 14px}
+.hero-l{font-size:13px;color:var(--tim-muted)}
+.hero-v{font-size:34px;font-weight:700;letter-spacing:-.5px;line-height:1.15;margin-top:2px}
+.hero-s{font-size:13px;color:var(--tim-muted);margin-top:4px}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-top:12px}
+.stat{background:var(--tim-surface);border-radius:14px;padding:12px 14px;box-shadow:inset 0 0 0 1px var(--tim-hair);min-width:0}
+.stat-l{font-size:12px;color:var(--tim-muted);line-height:1.3;min-height:31px}
+.stat-v{font-size:19px;font-weight:700;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat-s{font-size:12px;color:var(--tim-faint);margin-top:2px}
+.row{display:flex;align-items:center;gap:10px;min-height:52px;padding:8px 0;border-top:1px solid var(--tim-hair)}
+.row:first-of-type{border-top:0}
+.card-h+.row{border-top:1px solid var(--tim-hair)}
+.row-m{flex:1 1 auto;min-width:0}
+.row-t{font-size:14px;font-weight:500;line-height:1.3}
+.row-c{font-size:12px;color:var(--tim-muted);margin-top:2px;line-height:1.35}
+.row-v{font-size:14px;font-weight:700;white-space:nowrap;text-align:right}
+.row-v small{display:block;font-size:11px;font-weight:400;color:var(--tim-faint)}
+.tap{cursor:pointer}
+.chev{color:var(--tim-faint);font-size:18px;flex:0 0 auto}
+.dot{width:10px;height:10px;border-radius:5px;flex:0 0 auto}
+.ok{background:var(--tim-success)}.warn{background:var(--tim-warning)}.bad{background:var(--tim-red)}.idle{background:var(--tim-hair-strong)}
+.pill{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:11px;font-size:12px;font-weight:500;white-space:nowrap}
+.p-ok{background:var(--tim-band);color:var(--tim-band-ink)}.p-warn{background:var(--tim-warn-50);color:var(--tim-warning)}.p-bad{background:var(--tim-red-50);color:var(--tim-danger)}.p-grey{background:var(--tim-surface-2);color:var(--tim-ink-2)}
+.pos{color:var(--tim-success)}.neg{color:var(--tim-danger)}.mut{color:var(--tim-muted)}
+.bar{height:6px;border-radius:3px;background:var(--tim-surface-2);margin-top:6px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:3px;background:var(--tim-blue)}
+.bar i.over{background:var(--tim-red)}
+.note{font-size:13px;color:var(--tim-muted);line-height:1.45;padding:10px 0 4px}
+.banner{margin-top:12px;border-radius:14px;padding:10px 14px;font-size:13px;line-height:1.45;background:var(--tim-warn-50);color:var(--tim-warning)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.chip{display:inline-flex;align-items:center;height:30px;padding:0 12px;border-radius:15px;font-size:13px;color:var(--tim-ink-2);box-shadow:inset 0 0 0 1px var(--tim-hair-strong);background:var(--tim-surface)}
+.vbars{display:flex;align-items:flex-end;gap:10px;height:120px;padding:8px 0 0}
+.vb{flex:1 1 0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0}
+.vb i{display:block;width:100%;max-width:44px;border-radius:6px 6px 2px 2px;background:var(--tim-blue)}
+.vb b{font-size:11px;font-weight:700;margin-bottom:4px;white-space:nowrap}
+.vb span{font-size:11px;color:var(--tim-muted);margin-top:6px}
+.det{font-size:12px;color:var(--tim-ink-2);background:var(--tim-surface-2);border-radius:10px;padding:8px 10px;margin:0 0 10px;display:none}
+.det.open{display:block}
+.det div{display:flex;justify-content:space-between;gap:8px;padding:2px 0}
+.skel{background:linear-gradient(90deg,var(--tim-surface-2),var(--tim-skel-hi),var(--tim-surface-2));background-size:200% 100%;border-radius:8px;height:14px;animation:pulse 1.2s ease-in-out infinite;margin:14px 0}
+@keyframes pulse{0%{background-position:100% 0}100%{background-position:-100% 0}}
+@media (prefers-reduced-motion:reduce){.skel{animation:none}}
+.empty{text-align:center;color:var(--tim-muted);font-size:14px;padding:28px 8px}
+.foot{text-align:center;font-size:12px;color:var(--tim-faint);margin-top:18px}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
+@media (min-width:600px){.hero-v{font-size:38px}}
+@media (max-width:340px){.app{padding:0 12px}.hero-v{font-size:28px}.stat-v{font-size:17px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div class="brand">
+      <div class="logo">ქ</div>
+      <div><div class="brand-t">ქესალო · ნერსერი</div><div class="brand-s" id="who">&nbsp;</div></div>
+      <div class="brand-r" id="at"></div>
+    </div>
+    <div class="tabs" id="tabs"></div>
+  </div>
+  <div id="view"><div class="card"><div class="skel"></div><div class="skel" style="width:60%"></div><div class="skel" style="width:80%"></div></div></div>
+  <div class="foot">ქესალო · მხოლოდ კითხვა — არაფერი იცვლება</div>
+</div>
+<script>
+const API = "https://owgvoonnsccujzpbprpw.supabase.co/functions/v1/mini";
+const TG = window.Telegram && window.Telegram.WebApp;
+const LABEL = { home: "მთავარი", cash: "ფული", funds: "ინვესტიცია", tax: "გადასახადები", wc: "საბრუნავი", books: "ბუღალტერია", recon: "მომწოდებლები", alerts: "შეტყობინებები", trust: "წყაროები" };
+const ROLE = { admin: "ადმინისტრატორი", family: "ოჯახი", investor: "ინვესტორი", accountant: "ბუღალტერი" };
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const num = (v, d = 0) => v == null || v === "" ? "—" : Number(v).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
+const gel = (v, d = 0) => v == null ? "—" : num(v, d) + " ₾";
+const MON = ["იან", "თებ", "მარ", "აპრ", "მაი", "ივნ", "ივლ", "აგვ", "სექ", "ოქტ", "ნოე", "დეკ"];
+const dt = (s) => { if (!s) return "—"; const d = new Date(String(s).length <= 10 ? s + "T00:00:00" : s); return d.getDate() + " " + MON[d.getMonth()]; };
+const tm = (s) => { const d = new Date(s); return dt(s) + " " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); };
+const daysAgo = (s) => s ? Math.floor((Date.now() - new Date(s + (String(s).length <= 10 ? "T00:00:00" : "")).getTime()) / 864e5) : null;
+const card = (title, n, body) => `<div class="card"><div class="card-h"><div class="card-t">${title}</div>${n ? `<div class="card-n">${n}</div>` : ""}</div>${body}</div>`;
+const row = (t, c, v, extra = "") => `<div class="row ${extra}"><div class="row-m"><div class="row-t">${t}</div>${c ? `<div class="row-c">${c}</div>` : ""}</div>${v != null ? `<div class="row-v">${v}</div>` : ""}</div>`;
+const stat = (l, v, s) => `<div class="stat"><div class="stat-l">${l}</div><div class="stat-v">${v}</div>${s ? `<div class="stat-s">${s}</div>` : ""}</div>`;
+const lvl = (l) => l === "crit" || l === "error" ? "bad" : l === "warn" ? "warn" : "ok";
+
+let me = null, cur = "home", badge = 0;
+
+function theme() {
+  const dark = TG && TG.colorScheme ? TG.colorScheme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  document.documentElement.dataset.theme = dark ? "dark" : "light";
+  if (TG && TG.setHeaderColor) { try { TG.setHeaderColor(dark ? "#0F1620" : "#F2F5F8"); TG.setBackgroundColor(dark ? "#0F1620" : "#F2F5F8"); } catch (e) {} }
+}
+
+function drawTabs() {
+  $("#tabs").innerHTML = me.tabs.map((t) => `<button class="tab${t === cur ? " on" : ""}" data-t="${t}">${LABEL[t]}${t === "alerts" && badge ? ` <span class="b">${badge}</span>` : ""}</button>`).join("");
+  const on = $("#tabs .on"); if (on) on.scrollIntoView({ inline: "center", block: "nearest" });
+}
+
+async function load(t) {
+  cur = t; if (me) drawTabs();
+  $("#view").innerHTML = `<div class="card"><div class="skel"></div><div class="skel" style="width:60%"></div><div class="skel" style="width:80%"></div></div>`;
+  try {
+    const r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ initData: TG ? TG.initData : "", tab: t }) });
+    const b = await r.json();
+    if (r.status === 401) return fail("ეს გვერდი მხოლოდ ტელეგრამის ბოტიდან იხსნება.");
+    if (r.status === 403) return fail("თქვენ ჯერ არ გაქვთ წვდომა. ოთარს ვაცნობეთ — დაელოდეთ.");
+    if (!r.ok) return fail("ვერ ჩაიტვირთა: " + esc(b.error || r.status));
+    me = b.me; cur = b.tab;
+    if (b.tab === "home") badge = Number(b.data.home && b.data.home.open_alerts) || 0;
+    $("#who").textContent = me.name + " · " + (ROLE[me.role] || me.role);
+    $("#at").innerHTML = "განახლდა<br>" + tm(b.at);
+    drawTabs();
+    $("#view").innerHTML = (VIEW[b.tab] || (() => ""))(b.data, me.role);
+    window.scrollTo(0, 0);
+  } catch (e) { fail("ინტერნეტი? ვერ დავუკავშირდი სერვერს."); }
+}
+function fail(msg) { $("#view").innerHTML = `<div class="card"><div class="empty">${msg}<br><br><button class="tab" onclick="load(cur)">თავიდან ცდა</button></div></div>`; }
+
+const VIEW = {
+  home(d, role) {
+    const h = d.home || {}; const bankOld = daysAgo(h.bank_as_of);
+    let s = "";
+    if (bankOld != null && bankOld > 3) s += `<div class="banner">ბანკის ამონაწერი ${dt(h.bank_as_of)}-დანაა (${bankOld} დღის). ბანკის API-ის ჩართვის შემდეგ ყოველდღე განახლდება.</div>`;
+    s += `<div class="card hero tap" data-go="cash"><div class="hero-l">ფული ბანკში (ლარში)</div><div class="hero-v">${gel(h.cash_gel)}</div><div class="hero-s">ბანკი ${dt(h.bank_as_of)} · NBG კურსით</div></div>`;
+    s += `<div class="grid2">`
+      + stat("ხარჯი წლის დასაწყისიდან", gel(h.opex_ytd), "ბუღალტერია " + dt(h.books_as_of))
+      + stat("ინვესტიცია (აქტივები)", gel(h.capex_booked_net), "დღგ-ს გარეშე")
+      + stat("დღგ — ბიუჯეტის ვალი ჩვენს მიმართ", gel(h.vat_credit), "საგადასახადო ბარათი")
+      + stat("შემოსავალი წლის დასაწყისიდან", gel(h.revenue_ytd), h.revenue_ytd ? "" : "გაყიდვები ჯერ არ დაწყებულა")
+      + `</div>`;
+    if (d.fx && d.fx.length) s += `<div class="chips">${d.fx.map((f) => `<span class="chip">${f.ccy} ${num(f.rate, 4)}</span>`).join("")}<span class="chip">NBG · ${dt(d.fx[0].rate_date)}</span></div>`;
+    if (role !== "investor" && d.alerts && d.alerts.length) s += card("ყურადსაღები", `<span class="tap" data-go="alerts">ყველა ${h.open_alerts || ""} ›</span>`, d.alerts.map((a) => row(esc(a.title), "", null, "tap\" data-go=\"alerts")).join(""));
+    if (role !== "investor" && h.capex_unassigned > 0) s += `<div class="note">${gel(h.capex_unassigned)} ინვესტიცია ჯერ ბიუჯეტის ხაზზე არ არის მიბმული.</div>`;
+    return s;
+  },
+  cash(d) {
+    const c = d.cash || []; const tot = c.reduce((a, x) => a + Number(x.gel_equivalent || 0), 0);
+    let s = `<div class="card hero"><div class="hero-l">სულ ბანკში (ლარში)</div><div class="hero-v">${gel(tot)}</div><div class="hero-s">უცხოური ვალუტა — NBG-ის დღევანდელი კურსით</div></div>`;
+    s += c.map((x) => {
+      const same = x.bank_as_of && x.books_as_of && x.bank_as_of === x.books_as_of;
+      const gap = same ? Number(x.bank_balance) - Number(x.books_balance) : null;
+      return card(x.currency, x.fx_rate ? "კურსი " + num(x.fx_rate, 4) : "",
+        row("ბანკი", dt(x.bank_as_of), num(x.bank_balance, 2) + " " + x.currency + (x.fx_rate ? `<small>${gel(x.gel_equivalent)}</small>` : ""))
+        + row("ბუღალტერია", dt(x.books_as_of), num(x.books_balance, 2) + " " + x.currency)
+        + (same ? row("სხვაობა", "", `<span class="${Math.abs(gap) < 1 ? "pos" : "neg"}">${num(gap, 2)}</span>`)
+                : `<div class="note">თარიღები განსხვავდება — შედარება მხოლოდ ერთსა და იმავე დღეზე ხდება.</div>`));
+    }).join("");
+    return s;
+  },
+  funds(d, role) {
+    const L = d.lines || []; const B = L.reduce((a, x) => a + Number(x.budget || 0), 0); const U = L.reduce((a, x) => a + Number(x.booked_net || 0), 0);
+    let s = `<div class="card hero"><div class="hero-l">ინვესტიციის ბიუჯეტი — ათვისებული</div><div class="hero-v">${gel(U)}</div><div class="hero-s">${gel(B)}-დან · ${B ? Math.round(U / B * 100) : 0}%</div><div class="bar"><i style="width:${B ? Math.min(100, U / B * 100) : 0}%"></i></div></div>`;
+    s += card("ხაზები", L.length + " ხაზი", L.map((x) => {
+      const p = Number(x.budget) ? Number(x.booked_net) / Number(x.budget) * 100 : 0;
+      const cap = [x.assets ? x.assets + " აქტივი" : "", x.rsge_invoices ? x.rsge_invoices + " ა/ფ" : "", x.bank_paid_to_suppliers ? "ბანკით " + gel(x.bank_paid_to_suppliers) : "", x.last_date ? "ბოლო " + dt(x.last_date) : ""].filter(Boolean).join(" · ") || "ჯერ არაფერი";
+      return `<div class="row"><div class="row-m"><div class="row-t">${esc(x.label_ka)}</div><div class="row-c">${cap}</div><div class="bar"><i class="${p > 100 ? "over" : ""}" style="width:${Math.min(100, p)}%"></i></div></div><div class="row-v">${gel(x.booked_net)}<small>${gel(x.budget)}</small></div></div>`;
+    }).join(""));
+    if (d.funding && d.funding.length) s += card("დაფინანსება", "", d.funding.map((f) => row(esc(f.label || f.source || f.kind), dt(f.date || f.last_date), gel(f.amount || f.amount_gel))).join(""));
+    return s;
+  },
+  tax(d) {
+    const t = d.tax || {}; const v = d.vat || [];
+    let s = `<div class="card hero"><div class="hero-l">ბიუჯეტის ვალი ჩვენს მიმართ (ზედმეტობა)</div><div class="hero-v">${gel(t.card_balance, 2)}</div><div class="hero-s">rs.ge ბარათი ${dt(t.card_as_of)}</div></div>`;
+    const diff = Number(t.card_balance) - Number(t.books_tax_account);
+    s += card("ბარათი vs ბუღალტერია", "", row("rs.ge საგადასახადო ბარათი", dt(t.card_as_of), gel(t.card_balance, 2))
+      + row("ბუღალტერია (ORIS)", "", gel(t.books_tax_account, 2))
+      + row("სხვაობა", "", `<span class="${Math.abs(diff) < 5 ? "pos" : "neg"}">${num(diff, 2)} ₾</span>`)
+      + row("ჩათვლის დღგ (rs.ge ა/ფ)", "", gel(t.input_vat_rsge, 2)));
+    if (v.length) {
+      const mx = Math.max(...v.map((x) => Number(x.vat)));
+      s += card("ჩათვლის დღგ თვეების მიხედვით", "ა/ფ", `<div class="vbars">${v.map((x) => `<div class="vb"><b>${num(x.vat)}</b><i style="height:${Math.max(4, Number(x.vat) / mx * 80)}px"></i><span>${MON[new Date(x.month).getMonth()]}</span></div>`).join("")}</div>`);
+    }
+    s += `<div class="note">საკუთარი მოყვანილი სასოფლო-სამეურნეო პროდუქცია დღგ-სგან გათავისუფლებულია ჩათვლის უფლებით (საგ. კოდ. 172(უ)) — ზედმეტობა დაბრუნებადია.</div>`;
+    return s;
+  },
+  wc(d) {
+    const w = d.wc || {};
+    return card("საბრუნავი კაპიტალი", "ბუღალტერია " + dt(w.books_as_of),
+      row("ნერგები (მარაგი)", "", gel(w.stock_saplings))
+      + row("დაუმთავრებელი წარმოება", "", gel(w.work_in_progress))
+      + row("სხვა მარაგი", "", gel(w.stock_other))
+      + row("მოთხოვნები და ავანსები", "", gel(w.receivables_and_advances))
+      + row("მომწოდებლების ვალი", "", `<span class="neg">−${num(w.payables_third_party)} ₾</span>`)
+      + row("დღგ ზედმეტობა (ბარათი)", "", gel(w.vat_credit_card)));
+  },
+  books(d) {
+    const l = d.lag || {}; const h = d.hist || [];
+    const ch = { add: 0, change: 0, delete: 0 }; h.forEach((x) => ch[x.change] = (ch[x.change] || 0) + 1);
+    let s = `<div class="grid2">${stat("ბოლო გატარების თარიღი", dt(l.last_entry_date), l.days_since_entry != null ? l.days_since_entry + " დღის წინ" : "")}${stat("ბოლოს შეყვანილი", dt(l.last_entered_on), "ORIS")}</div>`;
+    s += card("ცვლილებები 30 დღეში", "", row("დამატებული", "", num(ch.add)) + row("შეცვლილი", "", num(ch.change)) + row("წაშლილი", "", `<span class="${ch.delete ? "neg" : ""}">${num(ch.delete)}</span>`));
+    s += card("ბოლო გატარებები", (d.recent || []).length, (d.recent || []).map((r) => row(`<span class="mono">${esc(r.debit)} → ${esc(r.credit)}</span>`, dt(r.entry_date) + (r.doc ? " · " + esc(r.doc) : ""), gel(r.amount_gel, 2))).join(""));
+    return s;
+  },
+  recon(d) {
+    const rank = (x) => !Number(x.rsge_invoiced) ? 1 : Math.abs(x.gap_invoiced_vs_booked) >= 1 ? 0 : 2;
+    const R = (d.recon || []).slice().sort((a, b) => rank(a) - rank(b) || Math.abs(b.gap_invoiced_vs_booked) - Math.abs(a.gap_invoiced_vs_booked) || Number(b.oris_booked) - Number(a.oris_booked));
+    const off = R.filter((x) => Math.abs(x.gap_invoiced_vs_booked) >= 1 && Number(x.rsge_invoiced) > 0);
+    let s = `<div class="grid2">${stat("მომწოდებელი", R.length, "rs.ge ან ბუღალტერია")}${stat("სხვაობით (ა/ფ-იანი)", off.length, "დააჭირე დეტალებს")}</div>`;
+    s += card("rs.ge vs ბუღალტერია", "", R.map((x, i) => {
+      const g = Number(x.gap_invoiced_vs_booked); const noInv = !Number(x.rsge_invoiced);
+      const pill = noInv ? `<span class="pill p-grey">ა/ფ არ არის</span>` : Math.abs(g) < 1 ? `<span class="pill p-ok">ემთხვევა</span>` : `<span class="pill p-bad">${g > 0 ? "+" : ""}${num(g)} ₾</span>`;
+      return `<div class="row tap" data-det="${i}"><div class="row-m"><div class="row-t">${esc(x.supplier)}</div><div class="row-c">ORIS ${gel(x.oris_booked)} · rs.ge ${gel(x.rsge_invoiced)}</div></div>${pill}<span class="chev">›</span></div>`
+        + `<div class="det" id="det${i}"><div><span>rs.ge ა/ფ</span><b>${gel(x.rsge_invoiced, 2)} (${x.invoices})</b></div><div><span>rs.ge ზედნადები</span><b>${gel(x.rsge_waybills, 2)} (${x.waybills})</b></div><div><span>ORIS დაბეგრილი</span><b>${gel(x.oris_booked, 2)}</b></div><div><span>ORIS გადახდილი</span><b>${gel(x.oris_paid, 2)}</b></div><div><span>ბანკით გადახდილი</span><b>${gel(x.bank_paid, 2)}</b></div><div><span>ს/კ</span><b>${esc(x.tin)}</b></div></div>`;
+    }).join(""));
+    s += `<div class="note">„ა/ფ არ არის" — ფიზიკური პირი ან მომსახურება, rs.ge-ზე ფაქტურა არ იწერება. „+" — rs.ge-ზე მეტია, ვიდრე ბუღალტერიაში.</div>`;
+    return s;
+  },
+  alerts(d) {
+    const A = d.alerts || [];
+    if (!A.length) return card("შეტყობინებები", "", `<div class="empty">ღია შეტყობინება არ არის ✓</div>`);
+    return card("ღია შეტყობინებები", A.length, A.map((a) => `<div class="row"><span class="dot ${lvl(a.level)}"></span><div class="row-m"><div class="row-t">${esc(a.title)}</div>${a.body ? `<div class="row-c">${esc(a.body)}</div>` : ""}<div class="row-c">${tm(a.created_at)}</div></div></div>`).join(""));
+  },
+  trust(d) {
+    const F = d.feeds || [];
+    const NAME = { bank_bog: "BOG ბანკი", bot: "ბოტი", controls: "კონტროლები", fx: "NBG კურსი", weather: "ამინდი", mail: "ფოსტა", oris: "ORIS (ნერსერი)", oris_main: "ORIS (მწვანე სახლი)", rsge: "rs.ge (ნერსერი)", rsge_main: "rs.ge (მწვანე სახლი)", zaza: "ზაზას სია" };
+    const ERR = { "waiting for credentials": "ელოდება ბანკის API გასაღებს" };
+    const ok = F.filter((f) => !f.stale).length;
+    return `<div class="grid2">${stat("მუშაობს", ok + " / " + F.length, "")}${stat("ყურადღება", F.length - ok, "")}</div>`
+      + card("მონაცემთა წყაროები", "", F.map((f) => row(`<span style="display:inline-flex;align-items:center;gap:8px"><span class="dot ${f.stale ? (f.last_ok ? "warn" : "bad") : "ok"}"></span>${esc(NAME[f.feed] || f.feed)}</span>`,
+        f.last_error ? esc(ERR[f.last_error] || f.last_error) : "", f.last_ok ? tm(f.last_ok) : "—")).join(""));
+  },
+};
+
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("[data-t]"); if (t) { if (TG && TG.HapticFeedback) TG.HapticFeedback.selectionChanged(); return load(t.dataset.t); }
+  const g = e.target.closest("[data-go]"); if (g && me && me.tabs.includes(g.dataset.go)) return load(g.dataset.go);
+  const r = e.target.closest("[data-det]"); if (r) { const el = document.getElementById("det" + r.dataset.det); el.classList.toggle("open"); r.querySelector(".chev").textContent = el.classList.contains("open") ? "⌄" : "›"; }
+});
+
+theme();
+if (TG) { TG.ready(); TG.expand(); TG.onEvent && TG.onEvent("themeChanged", theme); }
+const start = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param) || new URLSearchParams(location.search).get("tab") || "home";
+load(LABEL[start] ? start : "home");
+</script>
+</body>
+</html>
