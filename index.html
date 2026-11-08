@@ -6,100 +6,144 @@
 <title>ქესალო</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Georgian:wght@400;500;700&display=swap">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Georgian:wdth,wght@62.5..100,400..800&display=swap">
 <style>
-/* TIM mini-app tokens (tim-dashboard/src/app/mini/ui-css.js) - same look, light + dark */
-:root{--tim-canvas:#F2F5F8;--tim-surface:#FFFFFF;--tim-surface-2:#EEF2F6;--tim-hair:#E2E8EF;--tim-hair-strong:#C9D3DE;--tim-ink:#14233A;--tim-ink-2:#3E4F63;--tim-muted:#66768A;--tim-faint:#94A1B2;--tim-navy:#1A375C;--tim-navy-50:#EAF0F6;--tim-navy-100:#D5E0EB;--tim-blue:#277BA6;--tim-blue-50:#E7F2F8;--tim-red:#E11D1D;--tim-red-50:#FDECEC;--tim-band:#DDF0E4;--tim-band-ink:#2E7D4F;--tim-on-brand:#FFFFFF;--tim-skel-hi:#F6F8FA;--tim-success:#177031;--tim-danger:#B81822;--tim-warning:#8A6D0A;--tim-warn-50:#FBF3DC;--tim-ff:'Noto Sans Georgian',system-ui,sans-serif}
-:root[data-theme="dark"]{--tim-canvas:#0F1620;--tim-surface:#18212D;--tim-surface-2:#212B39;--tim-hair:#2A3545;--tim-hair-strong:#3A4759;--tim-ink:#EEF2F7;--tim-ink-2:#C5CFDB;--tim-muted:#8E9CAE;--tim-faint:#66768A;--tim-navy:#9DC3EC;--tim-navy-50:#1E2E42;--tim-navy-100:#243A55;--tim-blue:#6FB3D9;--tim-blue-50:#1C3242;--tim-red:#FF5C5C;--tim-red-50:#3A1F22;--tim-band:#1F3A2C;--tim-band-ink:#7FCB9B;--tim-on-brand:#0F1620;--tim-skel-hi:#2A3545;--tim-success:#6FD08C;--tim-danger:#FF7B7B;--tim-warning:#E6C35C;--tim-warn-50:#3A3220}
+/* The panel in design C „ნახაზი" (wave design2, 8.11.2026; design/phase1/C-plan/DESIGN.md, the cards' lib/card-html.mjs):
+   light = the survey sheet (drawing paper, carbon ink), dark = the cyanotype blueprint; Telegram's colorScheme picks the
+   set. Our own tokens, never raw themeParams for text (4.5:1 checked for every text pair, both themes). One family,
+   Noto Sans Georgian, at three widths (wdth 62.5 display figures and titles, 75 Mtavruli labels, 100 reading text);
+   Mtavruli is emitted as code points (mt() below), never by text-transform. Zero radius; nothing eases (state changes
+   are two-frame steps, 90 ms). Status = a shape plus a word, never colour alone; colour never sits on a number. */
+:root{--q-canvas:#E9EAE5;--q-surface:#F8F8F5;--q-surface-2:#EDEEE9;--q-rule:#141615;--q-rule-light:#C4C7BF;--q-ink:#111312;--q-ink-2:#2D312F;--q-muted:#555A56;--q-accent:#1C46A8;--q-focus:#1C46A8;--q-invert:#111312;--q-on-invert:#F8F8F5;--q-good:#1B6E2E;--q-good-bg:#DDEEDF;--q-warn:#8A5100;--q-warn-bg:#F6E7C6;--q-crit:#B8360A;--q-crit-bg:#F8DCD3;--q-info:#555A56;--q-nursery:#8C2A6E;--q-main:#5E9A2F;--q-viz-fill:#111312;--q-viz-alt:#F8F8F5;--q-safe-top:0px;--q-safe-bottom:0px;--ff:'Noto Sans Georgian',system-ui,sans-serif;--step:steps(2,jump-none)}
+:root[data-theme="dark"]{--q-canvas:#0B2140;--q-surface:#0F284B;--q-surface-2:#143159;--q-rule:#DCE6F5;--q-rule-light:#34557F;--q-ink:#F2F6FC;--q-ink-2:#CEDAEC;--q-muted:#A3B6D2;--q-accent:#FFD66B;--q-focus:#FFD66B;--q-invert:#F2F6FC;--q-on-invert:#0B2140;--q-good:#3FBF7F;--q-good-bg:#123B3A;--q-warn:#FFC46B;--q-warn-bg:#3A3420;--q-crit:#FF8A50;--q-crit-bg:#4A2230;--q-info:#A3B6D2;--q-nursery:#E070B8;--q-main:#D4E57A;--q-viz-fill:#F2F6FC;--q-viz-alt:#0F284B;color-scheme:dark}
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--tim-canvas)}
-body{font-family:var(--tim-ff);font-variant-numeric:tabular-nums;color:var(--tim-ink);line-height:1.35;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
-.app{max-width:560px;margin:0 auto;padding:0 16px calc(24px + env(safe-area-inset-bottom))}
-.top{position:sticky;top:0;z-index:5;background:var(--tim-canvas);padding:12px 0 0;margin:0 -16px;padding-left:16px;padding-right:16px}
-.brand{display:flex;align-items:center;gap:10px;min-height:44px}
-.logo{width:36px;height:36px;border-radius:10px;background:var(--tim-band);color:var(--tim-band-ink);display:grid;place-items:center;font-weight:700;font-size:17px;flex:0 0 auto}
-.brand-t{font-size:17px;font-weight:700;line-height:1.2}
-.brand-s{font-size:13px;color:var(--tim-muted)}
-.brand-r{margin-left:auto;text-align:right;font-size:12px;color:var(--tim-faint);white-space:nowrap}
-.tabs{display:flex;gap:8px;overflow-x:auto;padding:12px 0 10px;scrollbar-width:none;touch-action:pan-x;border-bottom:1px solid var(--tim-hair)}
+html,body{margin:0;background:var(--q-canvas);color:var(--q-ink)}
+body{font:400 15px/20px var(--ff);font-stretch:100%;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--q-focus);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition-duration:0ms!important;animation:none!important}}
+.app{max-width:560px;margin:0 auto;padding:0 12px;min-height:100vh;display:flex;flex-direction:column}
+.top{position:sticky;top:0;z-index:5;background:var(--q-canvas);margin:0 -12px;padding:calc(6px + var(--q-safe-top)) 12px 8px}
+/* the header frame: company cell | who + when */
+.brand{display:flex;align-items:stretch;border:3px solid var(--q-rule);background:var(--q-surface)}
+.brand-c{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:8px;padding:8px 10px}
+.logo{flex:none;display:flex;gap:4px;align-items:center}
+.brand-t{font:700 12px/15px var(--ff);font-stretch:75%;letter-spacing:.06em;min-width:0}
+.brand-m{flex:none;max-width:46%;display:flex;flex-direction:column;justify-content:center;padding:6px 10px;border-left:1.5px solid var(--q-rule);font-size:12px;line-height:15px;color:var(--q-ink-2)}
+.brand-m div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* plan symbols: the nursery = a tree on a planting plan (circle + centre point), the main company = a plot (square).
+   The glyph inside is for text readers only; the drawing is the box. */
+.sym{flex:none;width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center;vertical-align:-2px}
+.sym i{font-size:0;line-height:0;font-style:normal}
+.sym.nursery{border:2px solid var(--q-nursery);border-radius:50%}
+.sym.nursery::after{content:"";width:4px;height:4px;border-radius:50%;background:var(--q-nursery)}
+.sym.main{background:var(--q-main)}
+.test{margin-top:6px;display:flex;gap:8px;align-items:flex-start;border:3px solid var(--q-rule);background:var(--q-crit-bg);color:var(--q-crit);padding:6px 10px;font:600 12.5px/17px var(--ff)}
+.test::before{content:"";flex:none;width:8px;height:8px;margin:4px 1px 0;background:var(--q-crit);transform:rotate(45deg)}
+.seg[hidden],.test[hidden]{display:none}
+/* the company switch: boxed cells in a 3 px frame; the chosen cell is inverted in a two-frame step */
+.seg{display:flex;margin-top:6px;border:3px solid var(--q-rule);background:var(--q-surface)}
+.seg button{flex:1 1 0;min-width:0;min-height:44px;border:0;border-radius:0;background:var(--q-surface);display:flex;align-items:center;justify-content:center;gap:7px;padding:0 6px;font:700 12px/15px var(--ff);font-stretch:75%;letter-spacing:.06em;color:var(--q-ink);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:background-color 90ms var(--step),color 90ms var(--step)}
+.seg button+button{border-left:1.5px solid var(--q-rule)}
+.seg button:active{background:var(--q-surface-2)}
+.seg button.on{background:var(--q-invert);color:var(--q-on-invert)}
+.seg button.on .sym.nursery{border-color:var(--q-on-invert)}.seg button.on .sym.nursery::after{background:var(--q-on-invert)}.seg button.on .sym.main{background:var(--q-on-invert)}
+/* the tab bar: boxed cells under a 3 px rule, held at the bottom of the screen (sticky, the last element of the page),
+   Mtavruli labels, the active cell inverted; scrolls sideways when a person has more tabs than fit */
+.tabs{position:sticky;bottom:0;z-index:10;margin:auto -12px 0;display:flex;overflow-x:auto;scrollbar-width:none;touch-action:pan-x;background:var(--q-surface);border-top:3px solid var(--q-rule);padding-bottom:var(--q-safe-bottom)}
 .tabs::-webkit-scrollbar{display:none}
-.tab{flex:0 0 auto;min-height:40px;padding:0 14px;border-radius:12px;background:var(--tim-surface);box-shadow:inset 0 0 0 1px var(--tim-hair);font:500 13px var(--tim-ff);color:var(--tim-ink-2);border:0;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
-.tab.on{background:var(--tim-navy);color:var(--tim-on-brand);box-shadow:none}
-.tab .b{min-width:18px;height:18px;border-radius:9px;background:var(--tim-red);color:#fff;font-size:11px;font-weight:700;display:inline-grid;place-items:center;padding:0 5px}
-.card{background:var(--tim-surface);border-radius:16px;padding:4px 16px 8px;margin-top:12px;box-shadow:inset 0 0 0 1px var(--tim-hair)}
-.card-h{display:flex;align-items:center;min-height:48px;gap:8px}
-.card-t{font-size:15px;font-weight:700;flex:1 1 auto;min-width:0}
-.card-n{font-size:12px;color:var(--tim-muted);white-space:nowrap}
-.hero{padding:14px 16px 14px}
-.hero-l{font-size:13px;color:var(--tim-muted)}
-.hero-v{font-size:34px;font-weight:700;letter-spacing:-.5px;line-height:1.15;margin-top:2px}
-.hero-s{font-size:13px;color:var(--tim-muted);margin-top:4px}
-.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-top:12px}
-.stat{background:var(--tim-surface);border-radius:14px;padding:12px 14px;box-shadow:inset 0 0 0 1px var(--tim-hair);min-width:0}
-.stat-l{font-size:12px;color:var(--tim-muted);line-height:1.3;min-height:31px}
-.stat-v{font-size:19px;font-weight:700;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.stat-s{font-size:12px;color:var(--tim-faint);margin-top:2px}
-.row{display:flex;align-items:center;gap:10px;min-height:52px;padding:8px 0;border-top:1px solid var(--tim-hair)}
-.row:first-of-type{border-top:0}
-.card-h+.row{border-top:1px solid var(--tim-hair)}
+.tab{flex:1 0 auto;min-width:72px;min-height:52px;border:0;border-radius:0;background:var(--q-surface);padding:0 10px;display:flex;align-items:center;justify-content:center;font:700 11px/14px var(--ff);font-stretch:75%;letter-spacing:.02em;color:var(--q-ink);cursor:pointer;position:relative;white-space:nowrap;transition:background-color 90ms var(--step),color 90ms var(--step)}
+.tab+.tab{border-left:1.5px solid var(--q-rule)}
+.tab:active{background:var(--q-surface-2)}
+.tab.on{background:var(--q-invert);color:var(--q-on-invert)}
+.tab .b{position:absolute;top:3px;right:3px;min-width:16px;height:15px;padding:0 3px;background:var(--q-crit);color:var(--q-surface);font:700 10.5px/15px var(--ff);text-align:center}
+/* the sheet: every block of a tab is a cell of one framed sheet, split by ink lines */
+#view{margin-top:8px;border:3px solid var(--q-rule);background:var(--q-surface)}
+#view>*+*{border-top:1.5px solid var(--q-rule)}
+.card{padding:0 12px 2px}
+.card-h{display:flex;align-items:baseline;gap:8px;min-height:40px;padding:10px 0 6px}
+.card-t{font:800 20px/23px var(--ff);font-stretch:62.5%;letter-spacing:.02em;flex:1 1 auto;min-width:0}
+.card-n{font:600 12px/15px var(--ff);font-stretch:75%;letter-spacing:.04em;color:var(--q-muted);white-space:nowrap}
+.hero{padding:10px 12px 12px}
+.hero-l,.stat-l{font:600 11.5px/14px var(--ff);font-stretch:75%;letter-spacing:.09em;color:var(--q-muted)}
+.hero-v{font:800 min(56px,14.5vw)/1.04 var(--ff);font-stretch:62.5%;margin-top:3px;white-space:nowrap}
+.hero-s{font-size:13px;line-height:18px;color:var(--q-ink-2);margin-top:2px}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:1.5px;background:var(--q-rule)}
+.stat{background:var(--q-surface);padding:9px 12px 10px;min-width:0}
+.stat:last-child:nth-child(odd){grid-column:1 / -1}
+.stat-v{font:800 27px/30px var(--ff);font-stretch:62.5%;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat-s{font-size:12.5px;line-height:16px;color:var(--q-muted);margin-top:2px}
+.row{display:flex;align-items:center;gap:10px;min-height:44px;padding:7px 0;border-top:1px solid var(--q-rule-light)}
+.card>.row:first-child{border-top:0}
 .row-m{flex:1 1 auto;min-width:0}
-.row-t{font-size:14px;font-weight:500;line-height:1.3}
-.row-c{font-size:12px;color:var(--tim-muted);margin-top:2px;line-height:1.35}
-.row-v{font-size:14px;font-weight:700;white-space:nowrap;text-align:right}
-.row-v small{display:block;font-size:11px;font-weight:400;color:var(--tim-faint)}
-.tap{cursor:pointer}
-.chev{color:var(--tim-faint);font-size:18px;flex:0 0 auto}
-.dot{width:10px;height:10px;border-radius:5px;flex:0 0 auto}
-.ok{background:var(--tim-success)}.warn{background:var(--tim-warning)}.bad{background:var(--tim-red)}.idle{background:var(--tim-hair-strong)}
-.pill{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:11px;font-size:12px;font-weight:500;white-space:nowrap}
-.p-ok{background:var(--tim-band);color:var(--tim-band-ink)}.p-warn{background:var(--tim-warn-50);color:var(--tim-warning)}.p-bad{background:var(--tim-red-50);color:var(--tim-danger)}.p-grey{background:var(--tim-surface-2);color:var(--tim-ink-2)}
-.pos{color:var(--tim-success)}.neg{color:var(--tim-danger)}.mut{color:var(--tim-muted)}
-.bar{height:6px;border-radius:3px;background:var(--tim-surface-2);margin-top:6px;overflow:hidden}
-.bar i{display:block;height:100%;border-radius:3px;background:var(--tim-blue)}
-.bar i.over{background:var(--tim-red)}
-.note{font-size:13px;color:var(--tim-muted);line-height:1.45;padding:10px 0 4px}
-.banner{margin-top:12px;border-radius:14px;padding:10px 14px;font-size:13px;line-height:1.45;background:var(--tim-warn-50);color:var(--tim-warning)}
-.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-.chip{display:inline-flex;align-items:center;height:30px;padding:0 12px;border-radius:15px;font-size:13px;color:var(--tim-ink-2);box-shadow:inset 0 0 0 1px var(--tim-hair-strong);background:var(--tim-surface)}
-.vbars{display:flex;align-items:flex-end;gap:10px;height:120px;padding:8px 0 0}
+.row-t{font-size:15px;line-height:20px}
+.row-c{font-size:12.5px;line-height:17px;color:var(--q-muted);margin-top:1px}
+.row-v{font-size:15px;font-weight:600;white-space:nowrap;text-align:right}
+.row-v small{display:block;font-size:12.5px;font-weight:400;color:var(--q-ink-2);margin-top:1px}
+.tap{cursor:pointer;transition:background-color 90ms var(--step)}
+.tap:active{background:var(--q-surface-2)}
+.chev{flex:none;color:var(--q-muted);font-size:18px;transition:transform 90ms var(--step)}
+.open-r .chev{transform:rotate(90deg)}
+/* status shapes: diamond = critical, triangle = warning, ring = info, check = good */
+.dot{flex:none;display:inline-block;width:12px;height:12px}
+.dot.bad{background:var(--q-crit);transform:rotate(45deg) scale(.72)}
+.dot.warn{width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:11px solid var(--q-warn)}
+.dot.ok{width:6px;height:11px;margin:0 3px 2px;border:solid var(--q-good);border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
+.dot.idle,.dot.info{border:1.5px solid var(--q-info);border-radius:50%}
+.w{font-weight:600}.w.bad{color:var(--q-crit)}.w.warn{color:var(--q-warn)}.w.ok{color:var(--q-good)}.w.info{color:var(--q-muted)}
+.pill{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 7px;font:600 12px/1 var(--ff);white-space:nowrap}
+.pill::before,.pos::before,.neg::before{content:"";display:inline-block;flex:none}
+.p-ok{background:var(--q-good-bg);color:var(--q-good)}.p-warn{background:var(--q-warn-bg);color:var(--q-warn)}.p-bad{background:var(--q-crit-bg);color:var(--q-crit)}.p-grey{background:var(--q-surface-2);color:var(--q-ink-2)}
+.p-ok::before,.pos::before{width:4px;height:8px;margin:0 2px 2px;border:solid var(--q-good);border-width:0 2px 2px 0;transform:rotate(45deg)}
+.p-warn::before{width:0;height:0;border-left:4.5px solid transparent;border-right:4.5px solid transparent;border-bottom:8px solid var(--q-warn)}
+.p-bad::before,.neg::before{width:7px;height:7px;background:var(--q-crit);transform:rotate(45deg)}
+.pos,.neg{color:inherit}.pos::before,.neg::before{margin-right:7px;vertical-align:2px}
+.mut{color:var(--q-muted)}
+/* scale bar: alternating ink and paper blocks on a hairline, no filled track */
+.bar{height:7px;margin-top:6px;border-bottom:1px solid var(--q-rule-light)}
+.bar i{display:block;height:6px;min-width:2px;background:repeating-linear-gradient(90deg,var(--q-viz-fill) 0 10px,var(--q-viz-alt) 10px 20px);border:1px solid var(--q-viz-fill)}
+.bar i.over{background:repeating-linear-gradient(90deg,var(--q-crit) 0 10px,var(--q-crit-bg) 10px 20px);border-color:var(--q-crit)}
+.note{padding:9px 12px 10px;font:600 13px/18px var(--ff);color:var(--q-ink)}
+.card .note{padding:8px 0 6px;font-weight:400;font-size:12.5px;line-height:17px;color:var(--q-muted)}
+.banner{display:flex;gap:8px;align-items:flex-start;padding:8px 12px;background:var(--q-warn-bg);color:var(--q-warn);font:600 13px/18px var(--ff)}
+.banner::before{content:"";flex:none;width:0;height:0;margin-top:4px;border-left:5.5px solid transparent;border-right:5.5px solid transparent;border-bottom:10px solid var(--q-warn)}
+.chips{display:flex;flex-wrap:wrap}
+.chip{flex:1 1 auto;padding:8px 10px;text-align:center;font:600 12.5px/16px var(--ff);font-stretch:75%;letter-spacing:.04em;color:var(--q-ink-2)}
+.chip+.chip{border-left:1.5px solid var(--q-rule)}
+.vbars{display:flex;align-items:flex-end;gap:10px;height:120px;padding:8px 0 4px}
 .vb{flex:1 1 0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0}
-.vb i{display:block;width:100%;max-width:44px;border-radius:6px 6px 2px 2px;background:var(--tim-blue)}
-.vb b{font-size:11px;font-weight:700;margin-bottom:4px;white-space:nowrap}
-.vb span{font-size:11px;color:var(--tim-muted);margin-top:6px}
-.det{font-size:12px;color:var(--tim-ink-2);background:var(--tim-surface-2);border-radius:10px;padding:8px 10px;margin:0 0 10px;display:none}
+.vb i{display:block;width:100%;max-width:44px;background:var(--q-viz-fill)}
+.vb b{font:800 13px/1 var(--ff);font-stretch:62.5%;margin-bottom:4px;white-space:nowrap}
+.vb span{font-size:12.5px;color:var(--q-muted);margin-top:6px}
+.det{font-size:12.5px;color:var(--q-ink-2);background:var(--q-surface-2);padding:8px 10px;margin:0 0 10px;display:none}
 .det.open{display:block}
 .det div{display:flex;justify-content:space-between;gap:8px;padding:2px 0}
-.skel{background:linear-gradient(90deg,var(--tim-surface-2),var(--tim-skel-hi),var(--tim-surface-2));background-size:200% 100%;border-radius:8px;height:14px;animation:pulse 1.2s ease-in-out infinite;margin:14px 0}
-@keyframes pulse{0%{background-position:100% 0}100%{background-position:-100% 0}}
-@media (prefers-reduced-motion:reduce){.skel{animation:none}}
-.empty{text-align:center;color:var(--tim-muted);font-size:14px;padding:28px 8px}
-.foot{text-align:center;font-size:12px;color:var(--tim-faint);margin-top:18px}
-.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
-.seg[hidden],.test[hidden]{display:none}
-.seg{display:flex;gap:4px;margin-top:8px;padding:3px;border-radius:12px;background:var(--tim-surface-2)}
-.seg button{flex:1 1 0;min-width:0;min-height:36px;border:0;border-radius:9px;background:transparent;font:500 13px var(--tim-ff);color:var(--tim-ink-2);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.seg button.on{background:var(--tim-surface);color:var(--tim-ink);font-weight:700;box-shadow:0 1px 2px rgba(20,35,58,.12)}
-.test{margin-top:8px;border-radius:10px;padding:7px 12px;font-size:13px;font-weight:600;background:var(--tim-red-50);color:var(--tim-danger)}
-.co-h{display:flex;align-items:center;gap:8px;margin:18px 0 -4px;font-size:14px;font-weight:700;color:var(--tim-ink-2)}
-.co-h:first-child{margin-top:12px}
-@media (min-width:600px){.hero-v{font-size:38px}}
-@media (max-width:340px){.app{padding:0 12px}.hero-v{font-size:28px}.stat-v{font-size:17px}}
+.skel{background:var(--q-surface-2);height:14px;margin:14px 0}
+.empty{text-align:center;color:var(--q-muted);font-size:14px;padding:28px 8px}
+.empty .tab{display:inline-flex;min-height:44px;border:1.5px solid var(--q-rule)}
+.foot{text-align:center;font-size:12px;color:var(--q-muted);margin:14px 0}
+.mono{font-size:12.5px;letter-spacing:.02em}
+/* „ორივე": a labelled section per company, never a total */
+.co-h{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--q-surface);font:700 13px/16px var(--ff);font-stretch:75%;letter-spacing:.02em;color:var(--q-ink)}
+#view>.co-h{border-top:3px solid var(--q-rule)}
+#view>.co-h:first-child{border-top:0}
+@media (max-width:340px){.app{padding-left:8px;padding-right:8px}.stat-v{font-size:24px}}
 </style>
 </head>
 <body>
 <div class="app">
   <div class="top">
     <div class="brand">
-      <div class="logo" id="logo">ქ</div>
-      <div><div class="brand-t" id="brand">ქესალო · ნერსერი</div><div class="brand-s" id="who">&nbsp;</div></div>
-      <div class="brand-r" id="at"></div>
+      <div class="brand-c"><span class="logo" id="logo"></span><div class="brand-t" id="brand">ᲥᲔᲡᲐᲚᲝ</div></div>
+      <div class="brand-m"><div id="who">&nbsp;</div><div id="at"></div></div>
     </div>
     <div class="test" id="test" hidden></div>
     <div class="seg" id="seg" hidden></div>
-    <div class="tabs" id="tabs"></div>
   </div>
   <div id="view"><div class="card"><div class="skel"></div><div class="skel" style="width:60%"></div><div class="skel" style="width:80%"></div></div></div>
   <div class="foot" id="foot">ქესალო · მხოლოდ კითხვა — არაფერი იცვლება</div>
+  <div class="tabs" id="tabs"></div>
 </div>
 <script>
 const API = "https://owgvoonnsccujzpbprpw.supabase.co/functions/v1/mini";
@@ -111,7 +155,7 @@ const ROLE = { admin: "ადმინისტრატორი", family: "ო
 const FEED_LABEL = {
   oris: "ORIS (ნერსერი)", oris_main: "ORIS (მწვანე სახლი)", rsge: "rs.ge (ნერსერი)", rsge_main: "rs.ge (მწვანე სახლი)",
   bank_bog: "BOG ბანკი (ნერსერი)", bank_bog_main: "BOG ბანკი (მწვანე სახლი)", bank_procredit_main: "ProCredit ბანკი (მწვანე სახლი)", bank_tbc_main: "TBC ბანკი (მწვანე სახლი)",
-  mail: "ფოსტა", fx: "ეროვნული ბანკის კურსი", weather: "ამინდი", controls: "კონტროლები", bot: "ბოტი", zaza: "ზაზას სია",
+  mail: "ფოსტა", fx: "ეროვნული ბანკის კურსი", weather: "ამინდი", controls: "კონტროლები", alerts: "სიგნალები (A1-A18)", bot: "ბოტი", zaza: "ზაზას სია",
 };
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -124,32 +168,51 @@ const daysAgo = (s) => s ? Math.floor((Date.now() - new Date(s + (String(s).leng
 const card = (title, n, body) => `<div class="card"><div class="card-h"><div class="card-t">${title}</div>${n ? `<div class="card-n">${n}</div>` : ""}</div>${body}</div>`;
 const row = (t, c, v, extra = "") => `<div class="row ${extra}"><div class="row-m"><div class="row-t">${t}</div>${c ? `<div class="row-c">${c}</div>` : ""}</div>${v != null ? `<div class="row-v">${v}</div>` : ""}</div>`;
 const stat = (l, v, s) => `<div class="stat"><div class="stat-l">${l}</div><div class="stat-v">${v}</div>${s ? `<div class="stat-s">${s}</div>` : ""}</div>`;
-const lvl = (l) => l === "crit" || l === "error" ? "bad" : l === "warn" ? "warn" : "ok";
+// status: a shape (.dot) plus a word; alerts.level is urgent | warn | info (crit/error from older rows)
+const lvl = (l) => l === "urgent" || l === "crit" || l === "error" ? "bad" : l === "warn" ? "warn" : l === "info" ? "info" : "ok";
+const LEVEL_KA = { bad: "სასწრაფო", warn: "ყურადღება", info: "ინფორმაცია", ok: "რიგზეა" };
+// Mtavruli as code points (Mkhedruli U+10D0-10FA, 10FD-10FF -> +0x0BC0) for titles, labels, tabs and the switch; text
+// nodes only (caps), so markup and entities stay intact
+const mt = (s) => String(s).replace(/[ა-ჺჽ-ჿ]/g, (c) => String.fromCodePoint(c.codePointAt(0) + 0x0BC0));
+function caps(root) {
+  root.querySelectorAll(".card-t,.hero-l,.stat-l").forEach((el) => { const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let n; while ((n = w.nextNode())) n.nodeValue = mt(n.nodeValue); });
+}
 
 // scope = which company the person looks at: nursery | main | both (the bot's switch; ?co= in the link)
 let me = null, cur = "home", badge = 0, scope = new URLSearchParams(location.search).get("co") || null;
-const LOGO = { nursery: "ქ", main: "მ", both: "⇄" };
+// plan symbols (circle with a centre point = the nursery's trees, square = the main company's plot); the glyph inside
+// is what a text reader gets, the drawing is CSS
+const SYM = { nursery: `<span class="sym nursery"><i>◉</i></span>`, main: `<span class="sym main"><i>■</i></span>` };
+const symOf = (s) => (s === "both" ? SYM.nursery + SYM.main : SYM[s] || "");
 
+// our light (survey sheet) or dark (cyanotype) token set from Telegram's colorScheme; Telegram's chrome gets the
+// canvas colour; the safe areas go into --q-safe-top / --q-safe-bottom
 function theme() {
   const dark = TG && TG.colorScheme ? TG.colorScheme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
-  document.documentElement.dataset.theme = dark ? "dark" : "light";
-  if (TG && TG.setHeaderColor) { try { TG.setHeaderColor(dark ? "#0F1620" : "#F2F5F8"); TG.setBackgroundColor(dark ? "#0F1620" : "#F2F5F8"); } catch (e) {} }
+  const root = document.documentElement;
+  root.dataset.theme = dark ? "dark" : "light";
+  const s = (TG && TG.safeAreaInset) || {}, c = (TG && TG.contentSafeAreaInset) || {};
+  root.style.setProperty("--q-safe-top", ((s.top || 0) + (c.top || 0)) + "px");
+  root.style.setProperty("--q-safe-bottom", ((s.bottom || 0) + (c.bottom || 0)) + "px");
+  const canvas = getComputedStyle(root).getPropertyValue("--q-canvas").trim();
+  if (TG) { try { if (TG.setHeaderColor) TG.setHeaderColor(canvas); if (TG.setBackgroundColor) TG.setBackgroundColor(canvas); if (TG.setBottomBarColor) TG.setBottomBarColor(canvas); } catch (e) {} }
 }
 
 function drawHead() {
   const one = me.companies[me.scope];
-  const brand = one ? one.brand : "ორივე კომპანია";
-  $("#brand").textContent = brand; document.title = brand;
-  $("#logo").textContent = LOGO[me.scope] || "ქ";
+  // the legal name, as on the cards (C: no screen prints „ქესალო" as a company - Telegram's header already does)
+  const brand = one ? one.name : "ორი კომპანია";
+  $("#brand").textContent = mt(brand); document.title = one ? one.brand : brand;
+  $("#logo").innerHTML = symOf(me.scope);
   $("#who").textContent = me.name + " · " + (me.role_ka || ROLE[me.role] || me.role);
-  $("#test").hidden = !me.test; $("#test").textContent = me.test ? "🧪 " + me.test : "";
+  $("#test").hidden = !me.test; $("#test").textContent = me.test || "";
   const seg = me.scopes || [];
   $("#seg").hidden = seg.length < 2;
-  $("#seg").innerHTML = seg.length < 2 ? "" : seg.map((s) => `<button class="${s === me.scope ? "on" : ""}" data-co="${s}">${esc(s === "both" ? "ორივე" : me.companies[s].short)}</button>`).join("");
+  $("#seg").innerHTML = seg.length < 2 ? "" : seg.map((s) => `<button class="${s === me.scope ? "on" : ""}" data-co="${s}" aria-pressed="${s === me.scope}">${s === "both" ? "" : SYM[s]}${esc(mt(s === "both" ? "ორივე" : me.companies[s].short))}</button>`).join("");
   $("#foot").textContent = (me.scope === "nursery" && seg.length < 2 ? "ქესალო · " : "") + "მხოლოდ კითხვა — არაფერი იცვლება";
 }
 function drawTabs() {
-  $("#tabs").innerHTML = me.tabs.map((t) => `<button class="tab${t === cur ? " on" : ""}" data-t="${t}">${LABEL[t]}${t === "alerts" && badge ? ` <span class="b">${badge}</span>` : ""}</button>`).join("");
+  $("#tabs").innerHTML = me.tabs.map((t) => `<button class="tab${t === cur ? " on" : ""}" data-t="${t}">${mt(LABEL[t])}${t === "alerts" && badge ? ` <span class="b">${badge}</span>` : ""}</button>`).join("");
   const on = $("#tabs .on"); if (on) on.scrollIntoView({ inline: "center", block: "nearest" });
 }
 
@@ -169,14 +232,17 @@ async function load(t, co) {
     scope = me.scope || scope;
     if (b.tab === "home") badge = Number(b.data.home && b.data.home.open_alerts) || 0;
     drawHead();
-    $("#at").innerHTML = "განახლდა<br>" + tm(b.at);
+    $("#at").textContent = "განახლდა " + tm(b.at);
     drawTabs();
-    // „ორივე": every section carries its company's name (also when only one company has this tab), never a total;
-    // a company with no tab here yet says so. The main company's tabs draw with VIEW_MAIN, the nursery's with VIEW.
+    // „ორივე": every section carries its company's name (also when only one company has this tab), never a total, and
+    // the sheet says so; a company with no tab here yet says so. The main company's tabs draw with VIEW_MAIN, the
+    // nursery's with VIEW.
     const secs = b.sections || [{ company: null, data: b.data }];
-    $("#view").innerHTML = !b.tab ? card(esc(me.companies[me.scope] ? me.companies[me.scope].brand : ""), "", `<div class="empty">ამ კომპანიის ჩანართები პანელში მზადდება — ბოტის ბარათები უკვე არის.</div>`)
-      : secs.map((x) => (me.scope === "both" && x.company ? `<div class="co-h">${LOGO[x.company] || ""} ${esc(me.companies[x.company].name)}</div>` : "")
+    $("#view").innerHTML = !b.tab ? card(esc(me.companies[me.scope] ? me.companies[me.scope].name : ""), "", `<div class="empty">ამ კომპანიის ჩანართები პანელში მზადდება — ბოტის ბარათები უკვე არის.</div>`)
+      : (me.scope === "both" ? `<div class="note">ორი ცალკე კომპანია, ორი ცალკე ანგარიში. ჯამი არ ითვლება.</div>` : "")
+        + secs.map((x) => (me.scope === "both" && x.company ? `<div class="co-h">${SYM[x.company] || ""} ${esc(me.companies[x.company].name)}</div>` : "")
         + ((x.company === "main" && VIEW_MAIN[b.tab]) || VIEW[b.tab] || (() => ""))(x.data, me.role)).join("");
+    caps($("#view"));
     window.scrollTo(0, 0);
   } catch (e) { fail("ინტერნეტი? ვერ დავუკავშირდი სერვერს."); }
 }
@@ -195,7 +261,7 @@ const VIEW = {
       + stat("შემოსავალი წლის დასაწყისიდან", gel(h.revenue_ytd), h.revenue_ytd ? "" : "გაყიდვები ჯერ არ დაწყებულა")
       + `</div>`;
     if (d.fx && d.fx.length) s += `<div class="chips">${d.fx.map((f) => `<span class="chip">${f.ccy} ${num(f.rate, 4)}</span>`).join("")}<span class="chip">NBG · ${dt(d.fx[0].rate_date)}</span></div>`;
-    if (role !== "investor" && d.alerts && d.alerts.length) s += card("ყურადსაღები", `<span class="tap" data-go="alerts">ყველა ${h.open_alerts || ""} ›</span>`, d.alerts.map((a) => row(esc(a.title), "", null, "tap\" data-go=\"alerts")).join(""));
+    if (role !== "investor" && d.alerts && d.alerts.length) s += card("ყურადსაღები", `<span class="tap" data-go="alerts">ყველა ${h.open_alerts || ""} ›</span>`, d.alerts.map((a) => row(`<span style="display:inline-flex;align-items:baseline;gap:9px"><span class="dot ${lvl(a.level)}"></span><span>${esc(a.title)}</span></span>`, "", null, "tap\" data-go=\"alerts")).join(""));
     if (role !== "investor" && h.capex_unassigned > 0) s += `<div class="note">${gel(h.capex_unassigned)} ინვესტიცია ჯერ ბიუჯეტის ხაზზე არ არის მიბმული.</div>`;
     return s;
   },
@@ -273,8 +339,8 @@ const VIEW = {
   },
   alerts(d) {
     const A = d.alerts || [];
-    if (!A.length) return card("შეტყობინებები", "", `<div class="empty">ღია შეტყობინება არ არის ✓</div>`);
-    return card("ღია შეტყობინებები", A.length, A.map((a) => `<div class="row"><span class="dot ${lvl(a.level)}"></span><div class="row-m"><div class="row-t">${esc(a.title)}</div>${a.body ? `<div class="row-c">${esc(a.body)}</div>` : ""}<div class="row-c">${tm(a.created_at)}</div></div></div>`).join(""));
+    if (!A.length) return card("შეტყობინებები", "", `<div class="empty"><span class="dot ok"></span> ღია შეტყობინება არ არის</div>`);
+    return card("ღია შეტყობინებები", A.length, A.map((a) => `<div class="row"><span class="dot ${lvl(a.level)}"></span><div class="row-m"><div class="row-t">${esc(a.title)}</div>${a.body ? `<div class="row-c">${esc(a.body)}</div>` : ""}<div class="row-c"><span class="w ${lvl(a.level)}">${LEVEL_KA[lvl(a.level)]}</span> · ${tm(a.created_at)}</div></div></div>`).join(""));
   },
   trust(d) {
     const F = d.feeds || [];
@@ -372,11 +438,11 @@ document.addEventListener("click", (e) => {
   const t = e.target.closest("[data-t]"); if (t) { if (TG && TG.HapticFeedback) TG.HapticFeedback.selectionChanged(); return load(t.dataset.t); }
   const c = e.target.closest("[data-co]"); if (c) { if (TG && TG.HapticFeedback) TG.HapticFeedback.selectionChanged(); return load(cur, c.dataset.co); }
   const g = e.target.closest("[data-go]"); if (g && me && me.tabs.includes(g.dataset.go)) return load(g.dataset.go);
-  const r = e.target.closest("[data-det]"); if (r) { const el = document.getElementById("det" + r.dataset.det); el.classList.toggle("open"); r.querySelector(".chev").textContent = el.classList.contains("open") ? "⌄" : "›"; }
+  const r = e.target.closest("[data-det]"); if (r) { const el = document.getElementById("det" + r.dataset.det); el.classList.toggle("open"); r.classList.toggle("open-r", el.classList.contains("open")); }
 });
 
 theme();
-if (TG) { TG.ready(); TG.expand(); TG.onEvent && TG.onEvent("themeChanged", theme); }
+if (TG) { TG.ready(); TG.expand(); if (TG.onEvent) ["themeChanged", "safeAreaChanged", "contentSafeAreaChanged"].forEach((e) => TG.onEvent(e, theme)); }
 const start = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param) || new URLSearchParams(location.search).get("tab") || "home";
 load(LABEL[start] ? start : "home");
 </script>
