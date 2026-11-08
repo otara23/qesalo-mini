@@ -75,6 +75,13 @@ body{font-family:var(--tim-ff);font-variant-numeric:tabular-nums;color:var(--tim
 .empty{text-align:center;color:var(--tim-muted);font-size:14px;padding:28px 8px}
 .foot{text-align:center;font-size:12px;color:var(--tim-faint);margin-top:18px}
 .mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
+.seg[hidden],.test[hidden]{display:none}
+.seg{display:flex;gap:4px;margin-top:8px;padding:3px;border-radius:12px;background:var(--tim-surface-2)}
+.seg button{flex:1 1 0;min-width:0;min-height:36px;border:0;border-radius:9px;background:transparent;font:500 13px var(--tim-ff);color:var(--tim-ink-2);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seg button.on{background:var(--tim-surface);color:var(--tim-ink);font-weight:700;box-shadow:0 1px 2px rgba(20,35,58,.12)}
+.test{margin-top:8px;border-radius:10px;padding:7px 12px;font-size:13px;font-weight:600;background:var(--tim-red-50);color:var(--tim-danger)}
+.co-h{display:flex;align-items:center;gap:8px;margin:18px 0 -4px;font-size:14px;font-weight:700;color:var(--tim-ink-2)}
+.co-h:first-child{margin-top:12px}
 @media (min-width:600px){.hero-v{font-size:38px}}
 @media (max-width:340px){.app{padding:0 12px}.hero-v{font-size:28px}.stat-v{font-size:17px}}
 </style>
@@ -83,24 +90,33 @@ body{font-family:var(--tim-ff);font-variant-numeric:tabular-nums;color:var(--tim
 <div class="app">
   <div class="top">
     <div class="brand">
-      <div class="logo">ქ</div>
-      <div><div class="brand-t">ქესალო · ნერსერი</div><div class="brand-s" id="who">&nbsp;</div></div>
+      <div class="logo" id="logo">ქ</div>
+      <div><div class="brand-t" id="brand">ქესალო · ნერსერი</div><div class="brand-s" id="who">&nbsp;</div></div>
       <div class="brand-r" id="at"></div>
     </div>
+    <div class="test" id="test" hidden></div>
+    <div class="seg" id="seg" hidden></div>
     <div class="tabs" id="tabs"></div>
   </div>
   <div id="view"><div class="card"><div class="skel"></div><div class="skel" style="width:60%"></div><div class="skel" style="width:80%"></div></div></div>
-  <div class="foot">ქესალო · მხოლოდ კითხვა — არაფერი იცვლება</div>
+  <div class="foot" id="foot">ქესალო · მხოლოდ კითხვა — არაფერი იცვლება</div>
 </div>
 <script>
 const API = "https://owgvoonnsccujzpbprpw.supabase.co/functions/v1/mini";
 const TG = window.Telegram && window.Telegram.WebApp;
-const LABEL = { home: "მთავარი", cash: "ფული", funds: "ინვესტიცია", tax: "გადასახადები", wc: "საბრუნავი", books: "ბუღალტერია", recon: "მომწოდებლები", alerts: "შეტყობინებები", trust: "წყაროები" };
+const LABEL = { home: "მთავარი", cash: "ფული", funds: "ინვესტიცია", tax: "გადასახადები", wc: "საბრუნავი", books: "ბუღალტერია", recon: "მომწოდებლები", alerts: "შეტყობინებები", trust: "წყაროები",
+  sales: "გაყიდვები", purchases: "შესყიდვები", vat: "დღგ", imports: "იმპორტი", tenders: "ტენდერები" };
 const ROLE = { admin: "ადმინისტრატორი", family: "ოჯახი", investor: "ინვესტორი", accountant: "ბუღალტერი" };
+// copy of FEED_LABEL in lib/feeds.mjs (the bot's cards and digest use that one) - change both together
+const FEED_LABEL = {
+  oris: "ORIS (ნერსერი)", oris_main: "ORIS (მწვანე სახლი)", rsge: "rs.ge (ნერსერი)", rsge_main: "rs.ge (მწვანე სახლი)",
+  bank_bog: "BOG ბანკი (ნერსერი)", bank_bog_main: "BOG ბანკი (მწვანე სახლი)", bank_procredit_main: "ProCredit ბანკი (მწვანე სახლი)", bank_tbc_main: "TBC ბანკი (მწვანე სახლი)",
+  mail: "ფოსტა", fx: "ეროვნული ბანკის კურსი", weather: "ამინდი", controls: "კონტროლები", bot: "ბოტი", zaza: "ზაზას სია",
+};
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const num = (v, d = 0) => v == null || v === "" ? "—" : Number(v).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
-const gel = (v, d = 0) => v == null ? "—" : num(v, d) + " ₾";
+const gel = (v, d = 0) => v == null ? "—" : num(v, d) + " ₾";   // no-break space: „₾" never wraps onto a line alone
 const MON = ["იან", "თებ", "მარ", "აპრ", "მაი", "ივნ", "ივლ", "აგვ", "სექ", "ოქტ", "ნოე", "დეკ"];
 const dt = (s) => { if (!s) return "—"; const d = new Date(String(s).length <= 10 ? s + "T00:00:00" : s); return d.getDate() + " " + MON[d.getMonth()]; };
 const tm = (s) => { const d = new Date(s); return dt(s) + " " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); };
@@ -110,7 +126,9 @@ const row = (t, c, v, extra = "") => `<div class="row ${extra}"><div class="row-
 const stat = (l, v, s) => `<div class="stat"><div class="stat-l">${l}</div><div class="stat-v">${v}</div>${s ? `<div class="stat-s">${s}</div>` : ""}</div>`;
 const lvl = (l) => l === "crit" || l === "error" ? "bad" : l === "warn" ? "warn" : "ok";
 
-let me = null, cur = "home", badge = 0;
+// scope = which company the person looks at: nursery | main | both (the bot's switch; ?co= in the link)
+let me = null, cur = "home", badge = 0, scope = new URLSearchParams(location.search).get("co") || null;
+const LOGO = { nursery: "ქ", main: "მ", both: "⇄" };
 
 function theme() {
   const dark = TG && TG.colorScheme ? TG.colorScheme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
@@ -118,26 +136,47 @@ function theme() {
   if (TG && TG.setHeaderColor) { try { TG.setHeaderColor(dark ? "#0F1620" : "#F2F5F8"); TG.setBackgroundColor(dark ? "#0F1620" : "#F2F5F8"); } catch (e) {} }
 }
 
+function drawHead() {
+  const one = me.companies[me.scope];
+  const brand = one ? one.brand : "ორივე კომპანია";
+  $("#brand").textContent = brand; document.title = brand;
+  $("#logo").textContent = LOGO[me.scope] || "ქ";
+  $("#who").textContent = me.name + " · " + (me.role_ka || ROLE[me.role] || me.role);
+  $("#test").hidden = !me.test; $("#test").textContent = me.test ? "🧪 " + me.test : "";
+  const seg = me.scopes || [];
+  $("#seg").hidden = seg.length < 2;
+  $("#seg").innerHTML = seg.length < 2 ? "" : seg.map((s) => `<button class="${s === me.scope ? "on" : ""}" data-co="${s}">${esc(s === "both" ? "ორივე" : me.companies[s].short)}</button>`).join("");
+  $("#foot").textContent = (me.scope === "nursery" && seg.length < 2 ? "ქესალო · " : "") + "მხოლოდ კითხვა — არაფერი იცვლება";
+}
 function drawTabs() {
   $("#tabs").innerHTML = me.tabs.map((t) => `<button class="tab${t === cur ? " on" : ""}" data-t="${t}">${LABEL[t]}${t === "alerts" && badge ? ` <span class="b">${badge}</span>` : ""}</button>`).join("");
   const on = $("#tabs .on"); if (on) on.scrollIntoView({ inline: "center", block: "nearest" });
 }
 
-async function load(t) {
-  cur = t; if (me) drawTabs();
+async function load(t, co) {
+  cur = t; if (co) scope = co; if (me) drawTabs();
   $("#view").innerHTML = `<div class="card"><div class="skel"></div><div class="skel" style="width:60%"></div><div class="skel" style="width:80%"></div></div>`;
   try {
-    const r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ initData: TG ? TG.initData : "", tab: t }) });
+    const r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ initData: TG ? TG.initData : "", tab: t, company: scope }) });
     const b = await r.json();
     if (r.status === 401) return fail("ეს გვერდი მხოლოდ ტელეგრამის ბოტიდან იხსნება.");
     if (r.status === 403) return fail("თქვენ ჯერ არ გაქვთ წვდომა. ოთარს ვაცნობეთ — დაელოდეთ.");
     if (!r.ok) return fail("ვერ ჩაიტვირთა: " + esc(b.error || r.status));
     me = b.me; cur = b.tab;
+    // the function deployed before W-A answers without companies or scope: it knows the nursery only (either may be
+    // deployed first - this page must work with both)
+    if (!me.companies) Object.assign(me, { companies: { nursery: { name: "შპს კავკასუს ურბან ნერსერი", short: "ნერსერი", brand: "ქესალო · ნერსერი" } }, scope: "nursery", scopes: ["nursery"] });
+    scope = me.scope || scope;
     if (b.tab === "home") badge = Number(b.data.home && b.data.home.open_alerts) || 0;
-    $("#who").textContent = me.name + " · " + (ROLE[me.role] || me.role);
+    drawHead();
     $("#at").innerHTML = "განახლდა<br>" + tm(b.at);
     drawTabs();
-    $("#view").innerHTML = (VIEW[b.tab] || (() => ""))(b.data, me.role);
+    // „ორივე": every section carries its company's name (also when only one company has this tab), never a total;
+    // a company with no tab here yet says so. The main company's tabs draw with VIEW_MAIN, the nursery's with VIEW.
+    const secs = b.sections || [{ company: null, data: b.data }];
+    $("#view").innerHTML = !b.tab ? card(esc(me.companies[me.scope] ? me.companies[me.scope].brand : ""), "", `<div class="empty">ამ კომპანიის ჩანართები პანელში მზადდება — ბოტის ბარათები უკვე არის.</div>`)
+      : secs.map((x) => (me.scope === "both" && x.company ? `<div class="co-h">${LOGO[x.company] || ""} ${esc(me.companies[x.company].name)}</div>` : "")
+        + ((x.company === "main" && VIEW_MAIN[b.tab]) || VIEW[b.tab] || (() => ""))(x.data, me.role)).join("");
     window.scrollTo(0, 0);
   } catch (e) { fail("ინტერნეტი? ვერ დავუკავშირდი სერვერს."); }
 }
@@ -147,7 +186,7 @@ const VIEW = {
   home(d, role) {
     const h = d.home || {}; const bankOld = daysAgo(h.bank_as_of);
     let s = "";
-    if (bankOld != null && bankOld > 3) s += `<div class="banner">ბანკის ამონაწერი ${dt(h.bank_as_of)}-დანაა (${bankOld} დღის). ბანკის API-ის ჩართვის შემდეგ ყოველდღე განახლდება.</div>`;
+    if (bankOld != null && bankOld > 2) s += `<div class="banner">ბანკის მონაცემი ${bankOld} დღისაა — ფიდი შემოწმდება</div>`;
     s += `<div class="card hero tap" data-go="cash"><div class="hero-l">ფული ბანკში (ლარში)</div><div class="hero-v">${gel(h.cash_gel)}</div><div class="hero-s">ბანკი ${dt(h.bank_as_of)} · NBG კურსით</div></div>`;
     s += `<div class="grid2">`
       + stat("ხარჯი წლის დასაწყისიდან", gel(h.opex_ytd), "ბუღალტერია " + dt(h.books_as_of))
@@ -164,13 +203,13 @@ const VIEW = {
     const c = d.cash || []; const tot = c.reduce((a, x) => a + Number(x.gel_equivalent || 0), 0);
     let s = `<div class="card hero"><div class="hero-l">სულ ბანკში (ლარში)</div><div class="hero-v">${gel(tot)}</div><div class="hero-s">უცხოური ვალუტა — NBG-ის დღევანდელი კურსით</div></div>`;
     s += c.map((x) => {
-      const same = x.bank_as_of && x.books_as_of && x.bank_as_of === x.books_as_of;
-      const gap = same ? Number(x.bank_balance) - Number(x.books_balance) : null;
+      // bank vs books on the books' date (v_v1_cash.bank_books_gap = bank balance that day − books), like with like
+      const gap = x.bank_books_gap != null ? Number(x.bank_books_gap) : null;
       return card(x.currency, x.fx_rate ? "კურსი " + num(x.fx_rate, 4) : "",
         row("ბანკი", dt(x.bank_as_of), num(x.bank_balance, 2) + " " + x.currency + (x.fx_rate ? `<small>${gel(x.gel_equivalent)}</small>` : ""))
         + row("ბუღალტერია", dt(x.books_as_of), num(x.books_balance, 2) + " " + x.currency)
-        + (same ? row("სხვაობა", "", `<span class="${Math.abs(gap) < 1 ? "pos" : "neg"}">${num(gap, 2)}</span>`)
-                : `<div class="note">თარიღები განსხვავდება — შედარება მხოლოდ ერთსა და იმავე დღეზე ხდება.</div>`));
+        + (gap != null ? row(`სხვაობა ${dt(x.books_as_of)}`, `ბანკი ${dt(x.books_as_of)}: ${num(x.bank_on_books_date, 2)} ${x.currency} · ბანკი − ბუღალტერია`, `<span class="${Math.abs(gap) < 1 ? "pos" : "neg"}">${num(gap, 2)} ${x.currency}</span>`)
+                       : `<div class="note">შედარება ვერ ხერხდება — ამ ვალუტაში ერთ-ერთ მხარეს მონაცემი არ არის.</div>`));
     }).join("");
     return s;
   },
@@ -187,7 +226,7 @@ const VIEW = {
   },
   tax(d) {
     const t = d.tax || {}; const v = d.vat || [];
-    let s = `<div class="card hero"><div class="hero-l">ბიუჯეტის ვალი ჩვენს მიმართ (ზედმეტობა)</div><div class="hero-v">${gel(t.card_balance, 2)}</div><div class="hero-s">rs.ge ბარათი ${dt(t.card_as_of)}</div></div>`;
+    let s = `<div class="card hero"><div class="hero-l">ბიუჯეტის ვალი ჩვენს მიმართ (ზედმეტობა)</div><div class="hero-v">${gel(t.card_balance, 2)}</div><div class="hero-s">rs.ge ბარათი ${dt(t.card_as_of)} (პორტალიდან)</div></div>`;
     const diff = Number(t.card_balance) - Number(t.books_tax_account);
     s += card("ბარათი vs ბუღალტერია", "", row("rs.ge საგადასახადო ბარათი", dt(t.card_as_of), gel(t.card_balance, 2))
       + row("ბუღალტერია (ORIS)", "", gel(t.books_tax_account, 2))
@@ -211,10 +250,10 @@ const VIEW = {
       + row("დღგ ზედმეტობა (ბარათი)", "", gel(w.vat_credit_card)));
   },
   books(d) {
-    const l = d.lag || {}; const h = d.hist || [];
-    const ch = { add: 0, change: 0, delete: 0 }; h.forEach((x) => ch[x.change] = (ch[x.change] || 0) + 1);
+    // Otar 8.11.2026 „don't need a change log at all": only new lines (d.added from the `mini` function), no edits/deletions
+    const l = d.lag || {};
     let s = `<div class="grid2">${stat("ბოლო გატარების თარიღი", dt(l.last_entry_date), l.days_since_entry != null ? l.days_since_entry + " დღის წინ" : "")}${stat("ბოლოს შეყვანილი", dt(l.last_entered_on), "ORIS")}</div>`;
-    s += card("ცვლილებები 30 დღეში", "", row("დამატებული", "", num(ch.add)) + row("შეცვლილი", "", num(ch.change)) + row("წაშლილი", "", `<span class="${ch.delete ? "neg" : ""}">${num(ch.delete)}</span>`));
+    s += card("ახალი გატარებები 30 დღეში", "", row("დამატებული", "", num(d.added)));
     s += card("ბოლო გატარებები", (d.recent || []).length, (d.recent || []).map((r) => row(`<span class="mono">${esc(r.debit)} → ${esc(r.credit)}</span>`, dt(r.entry_date) + (r.doc ? " · " + esc(r.doc) : ""), gel(r.amount_gel, 2))).join(""));
     return s;
   },
@@ -239,17 +278,99 @@ const VIEW = {
   },
   trust(d) {
     const F = d.feeds || [];
-    const NAME = { bank_bog: "BOG ბანკი", bot: "ბოტი", controls: "კონტროლები", fx: "NBG კურსი", weather: "ამინდი", mail: "ფოსტა", oris: "ORIS (ნერსერი)", oris_main: "ORIS (მწვანე სახლი)", rsge: "rs.ge (ნერსერი)", rsge_main: "rs.ge (მწვანე სახლი)", zaza: "ზაზას სია" };
-    const ERR = { "waiting for credentials": "ელოდება ბანკის API გასაღებს" };
+    const ERR = { "waiting for credentials": "ელოდება ბანკის წვდომის გასაღებს" };
     const ok = F.filter((f) => !f.stale).length;
     return `<div class="grid2">${stat("მუშაობს", ok + " / " + F.length, "")}${stat("ყურადღება", F.length - ok, "")}</div>`
-      + card("მონაცემთა წყაროები", "", F.map((f) => row(`<span style="display:inline-flex;align-items:center;gap:8px"><span class="dot ${f.stale ? (f.last_ok ? "warn" : "bad") : "ok"}"></span>${esc(NAME[f.feed] || f.feed)}</span>`,
+      + card("მონაცემთა წყაროები", "", F.map((f) => row(`<span style="display:inline-flex;align-items:center;gap:8px"><span class="dot ${f.stale ? (f.last_ok ? "warn" : "bad") : "ok"}"></span>${esc(FEED_LABEL[f.feed] || f.feed)}</span>`,
         f.last_error ? esc(ERR[f.last_error] || f.last_error) : "", f.last_ok ? tm(f.last_ok) : "—")).join(""));
+  },
+};
+
+// შპს მწვანე სახლი: the bot's cards M1-M6 and M8 (lib/cards-main.mjs) as tabs. The `mini` function did the card's
+// arithmetic; this only draws it, with the nursery tabs' parts (hero, stat, card, row, bar, note).
+const BANK_KA = { BOG: "საქართველოს ბანკი", TBC: "თიბისი ბანკი", ProCredit: "პროკრედიტ ბანკი" };
+const BANK_IN = { BOG: "საქართველოს ბანკშია", TBC: "თიბისი ბანკშია", ProCredit: "პროკრედიტ ბანკშია" };
+const MONTH_KA = ["იანვარი", "თებერვალი", "მარტი", "აპრილი", "მაისი", "ივნისი", "ივლისი", "აგვისტო", "სექტემბერი", "ოქტომბერი", "ნოემბერი", "დეკემბერი"];
+const monthKa = (s) => MONTH_KA[Number(String(s).slice(5, 7)) - 1] || "";
+const fxAmt = (v, c) => (Math.abs(Number(v)) < 100 ? num(v, 2) : num(v)) + " " + c;   // cents only under 100, as on the card
+const cut = (s, n) => { s = String(s == null ? "" : s).replace(/\s+/g, " ").trim(); return s.length > n ? s.slice(0, n - 1) + "…" : s; };
+const span = (a, b) => (a === b ? dt(a) : dt(a) + "–" + dt(b));
+const barRow = (t, c, v, w) => `<div class="row"><div class="row-m"><div class="row-t">${t}</div>${c ? `<div class="row-c">${c}</div>` : ""}<div class="bar"><i style="width:${Math.max(0, Math.min(100, Number(w) || 0))}%"></i></div></div><div class="row-v">${v}</div></div>`;
+const TENDER = { won: ["მოგებული", "p-ok"], lost: ["წაგებული", "p-bad"], in_progress: ["მიმდინარე", "p-warn"], failed: ["ჩაშლილი", "p-grey"] };
+const REG = { full: "სრული დეკლარაცია", form4: "ფორმა 4 (მცირე ღირებულების)", autos: "ავტომობილი" };
+function rsgeView(d) {
+  const sale = d.side === "sale", who = sale ? "მყიდველი" : "მომწოდებელი";
+  let s = `<div class="card hero"><div class="hero-l">${sale ? "გაყიდვები" : "შესყიდვები"} ${esc(d.year)} — წლის დასაწყისიდან</div><div class="hero-v">${gel(d.gross_ytd)}</div><div class="hero-s">დღგ-ს ჩათვლით · ${num(d.invoices_ytd)} ფაქტურა · ${num(d.counterparties_ytd)} ${who}</div></div>`;
+  s += `<div class="grid2">${stat(monthKa(d.month) + " (ამ თვეში)", gel(d.gross_month), num(d.invoices_month) + " ფაქტურა")}${stat("ზედნადები " + esc(d.year), num(d.waybills_ytd), "ამ თვეში " + num(d.waybills_month))}</div>`;
+  s += card(sale ? "ყველაზე დიდი მყიდველები" : "ყველაზე დიდი მომწოდებლები", d.top_pct != null ? `ხუთი — ${d.top_pct}%` : "",
+    (d.top || []).map((x) => barRow(esc(x.name), `${num(x.invoices)} ფაქტურა${x.person ? " · ფიზიკური პირი" : ""}`, gel(x.gross), x.share)).join(""));
+  s += card("წლის ჯამი", "", row("დღგ-ს გარეშე", "", gel(d.net_ytd)) + row("დღგ", "", gel(d.vat_ytd))
+    + (Number(d.dropped_ytd) ? row("გაუქმებული ფაქტურები", `${num(d.dropped_ytd)} ფაქტურა · ჯამში არ შედის`, `<span class="mut">${gel(d.dropped_gross_ytd)}</span>`) : ""));
+  return s + `<div class="note">rs.ge: ბოლო ფაქტურა ${dt(d.last_invoice_date)} · ბოლო ზედნადები ${dt(d.last_waybill_date)}</div>`;
+}
+const VIEW_MAIN = {
+  cash(d) {
+    const L = d.lines || [];
+    const warn = [d.age > 2 ? `ბანკის მონაცემი ${d.age} დღისაა` : "", (d.fx_missing || []).length ? `${d.fx_missing.join(", ")}: კურსი არ არის — ლარის ჯამში არ შედის` : ""].filter(Boolean).join(" · ");
+    let s = warn ? `<div class="banner">${esc(warn)}</div>` : "";
+    s += `<div class="card hero"><div class="hero-l">სულ ბანკში (ლარში)</div><div class="hero-v">${gel(d.total_gel)}</div><div class="hero-s">ბანკი ${dt(d.as_of)} · უცხოური ვალუტა — ეროვნული ბანკის კურსით</div></div>`;
+    s += card("ბანკი და ვალუტა", "", L.map((x) => barRow(esc((BANK_KA[x.bank] || x.bank) + " · " + x.currency),
+        `${num(x.accounts_nonzero)} ანგარიში · ${span(x.as_of, x.as_of_newest)}${x.currency !== "GEL" && x.fx_rate ? " · კურსი " + num(x.fx_rate, 4) : ""}`,
+        x.currency === "GEL" ? gel(x.balance) : fxAmt(x.balance, x.currency) + `<small>${x.gel_equivalent == null ? "—" : gel(x.gel_equivalent)}</small>`, x.share)).join("")
+      + (d.empty_accounts ? row("ნულოვანი ნაშთი", "ანგარიში-ვალუტა", `<span class="mut">${num(d.empty_accounts)}</span>`) : ""));
+    if (d.top_bank && d.top_bank.pct != null) s += `<div class="note">ფულის ${d.top_bank.pct}% ${esc(BANK_IN[d.top_bank.bank] || d.top_bank.bank)}.</div>`;
+    return s;
+  },
+  books(d) {
+    // F1 (8.11): no change log - last entry, entered on, +new lines; the year from ORIS without a profit line
+    const l = d.lag || {};
+    let s = Number(l.days_since_entry) > 10 ? `<div class="banner">ბოლოს შეყვანილია ${l.days_since_entry} დღის წინ</div>` : "";
+    s += `<div class="grid2">${stat("ბოლო გატარების თარიღი", dt(l.last_entry_date), "ORIS")}${stat("ბოლოს შეყვანილი", dt(l.last_entered_on), l.days_since_entry != null ? l.days_since_entry + " დღის წინ" : "")}</div>`;
+    s += card("ახალი გატარებები 7 დღეში", "", row("დამატებული", "", num(l.new_lines_7d)));
+    s += card(`${esc(d.year)} — ბუღალტერიით`, "ORIS",
+      row("შემოსავალი", "", `<span class="pos">${gel(d.revenue)}</span>`)
+      + row("საოპერაციო ხარჯი", `თვითღირებულება ${gel(d.opex_cost)} · მიწოდება ${gel(d.opex_delivery)} · ადმინისტრაციული ${gel(d.opex_admin)}`, gel(d.opex))
+      + (d.wip > 0 ? row("დაუმთავრებელ სამუშაოებში დაგროვდა", "ხარჯად გადავა სამუშაოს დასრულებისას, ჩვეულებრივ 31.12-ს", `<span class="pill p-warn">${gel(d.wip)}</span>`) : "")
+      + row("არასაოპერაციო, ნეტო", `შემოსავალი ${gel(d.non_op_income)} · ხარჯი ${gel(d.non_op_expense)}`, `<span class="${d.non_op < 0 ? "neg" : ""}">${gel(d.non_op)}</span>`)
+      + row("მოგების გადასახადი, ჯარიმები, განსაკუთრებული", "", gel(d.class9)));
+    if (d.wip > 0) s += `<div class="note">კიდევ ${gel(d.wip)} ხარჯი დაუმთავრებელ სამუშაოებშია — შედეგი წლის დახურვამდე არ ჩანს, ამიტომ მოგება აქ არ იწერება.</div>`;
+    return s;
+  },
+  sales: rsgeView,
+  purchases: rsgeView,
+  vat(d) {
+    const net = Number(d.net);
+    let s = `<div class="card hero"><div class="hero-l">დღგ ${esc(d.year)} — ${net > 0 ? "გადასახდელი" : "ჩასათვლელი"}</div><div class="hero-v">${gel(net)}</div><div class="hero-s">გაყიდვების დღგ − შესყიდვების დღგ, rs.ge ფაქტურებით</div></div>`;
+    s += `<div class="grid2">${stat("გაყიდვების დღგ", gel(d.output), "გაყიდვის ფაქტურები")}${stat("შესყიდვების დღგ", gel(d.input), Number(d.awaiting) ? "მ.შ. დასადასტურებელი " + gel(d.awaiting) : "შესყიდვის ფაქტურები")}</div>`;
+    s += card("თვეების მიხედვით", "გაყიდვა − შესყიდვა", (d.months || []).map((r) => row(monthKa(r.month), `გაყიდვა ${gel(r.output_vat)} · შესყიდვა ${gel(r.input_vat)}`,
+      `<span class="${Number(r.net_vat) > 0 ? "" : "pos"}">${gel(r.net_vat)}</span>`)).join(""));
+    return s + `<div class="note">ეს ფაქტურების სურათია — არა დეკლარაცია და არა საგადასახადო ბარათის ნაშთი (ბარათი ჯერ არ ჩანს). ბოლო ფაქტურა ${dt(d.last)}.</div>`;
+  },
+  imports(d) {
+    const R = d.registers || [], last = R.map((r) => r.last_reg_date).sort().pop();
+    let s = `<div class="card hero"><div class="hero-l">იმპორტი ${esc(d.year)} — საბაჟო ღირებულება</div><div class="hero-v">${gel(d.value_gel)}</div><div class="hero-s">საბაჟოს მონაცემი ${dt(d.as_of)}</div></div>`;
+    s += `<div class="grid2">${stat("დეკლარაცია", num(d.declarations), last ? "ბოლო " + dt(last) : "")}${stat("დღგ + ბაჟი", gel(d.vat_duty), "საბაჟოზე")}</div>`;
+    s += card("დეკლარაციები", "", R.length ? R.map((r) => row(esc(REG[r.register] || r.register), `${num(r.declarations)} დეკლარაცია · ბოლო ${dt(r.last_reg_date)}`, gel(r.value_gel))).join("")
+      : `<div class="empty">წელს იმპორტი არ არის</div>`);
+    return s + card("გადასახადები", "", row("იმპორტის დღგ", "", gel(d.import_vat)) + row("საბაჟო გადასახადი", "", gel(d.import_duty)) + (Number(d.excise) ? row("აქციზი", "", gel(d.excise)) : ""));
+  },
+  tenders(d) {
+    const t = d.s, src = `<div class="note">ცოდნის ბაზა ${dt(d.built)} · tendermonitor.ge ${dt(d.tm_updated)}</div>`;
+    if (!t) return card(`ტენდერები ${esc(d.year)}`, "", `<div class="empty">წელს ტენდერი არ არის</div>`) + src;
+    let s = `<div class="card hero"><div class="hero-l">ტენდერები ${esc(d.year)} — მოგებული</div><div class="hero-v">${esc(t.won)} / ${esc(t.tenders)}</div><div class="hero-s">გამარჯვება ${esc(t.win_rate_pct)}% · ხელშეკრულებები ${gel(t.contract_won)}</div></div>`;
+    s += `<div class="grid2">${stat("წაგებული", esc(t.lost), Number(t.failed) ? "ჩაშლილი " + esc(t.failed) : "")}${stat("მიმდინარე", esc(t.in_progress), "")}</div>`;
+    s += card("ბოლო ხუთი", "", (d.last || []).map((r) => { const [st, cl] = TENDER[r.status] || [r.status, "p-grey"];
+        return row(esc(cut(String(r.who).replace(/"([^"]*)"/g, "„$1“"), 80)), dt(r.announced) + " · " + esc(cut(r.subject, 70)), `${gel(r.amount)}<small><span class="pill ${cl}">${esc(st)}</span></small>`); }).join("")
+      + `<div class="note">თანხა: მოგებულზე — ხელშეკრულება, დანარჩენზე — ჩვენი ბოლო ფასი.</div>`);
+    s += card("წლის ჯამი", "", row("მოგებული ხელშეკრულებები", "", `<span class="pos">${gel(t.contract_won)}</span>`)
+      + row("მოგებული ერთადერთი მონაწილით", "", esc(t.won_sole_bidder)) + row("სხვამ მოიგო (ვმონაწილეობდით)", "", `<span class="mut">${gel(t.contract_lost_other_winner)}</span>`));
+    return s + src;
   },
 };
 
 document.addEventListener("click", (e) => {
   const t = e.target.closest("[data-t]"); if (t) { if (TG && TG.HapticFeedback) TG.HapticFeedback.selectionChanged(); return load(t.dataset.t); }
+  const c = e.target.closest("[data-co]"); if (c) { if (TG && TG.HapticFeedback) TG.HapticFeedback.selectionChanged(); return load(cur, c.dataset.co); }
   const g = e.target.closest("[data-go]"); if (g && me && me.tabs.includes(g.dataset.go)) return load(g.dataset.go);
   const r = e.target.closest("[data-det]"); if (r) { const el = document.getElementById("det" + r.dataset.det); el.classList.toggle("open"); r.querySelector(".chev").textContent = el.classList.contains("open") ? "⌄" : "›"; }
 });
