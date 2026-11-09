@@ -34,6 +34,11 @@ button{font:inherit;color:inherit}
 .brand-t{font:700 12px/15px var(--ff);font-stretch:75%;letter-spacing:.06em;min-width:0}
 .brand-m{flex:none;max-width:46%;display:flex;flex-direction:column;justify-content:center;padding:6px 10px;border-left:1.5px solid var(--q-rule);font-size:12px;line-height:15px;color:var(--q-ink-2)}
 .brand-m div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* the live mark before the time (W-RT; first, so a long time never pushes it into the ellipsis): a filled ink square = live (a change shows by itself), a ring = checking every
+   30 s (the socket is down); the words are its label. No colour carries it, nothing blinks. */
+.lv{display:inline-block;width:7px;height:7px;margin-right:6px;vertical-align:1px;background:var(--q-ink)}
+.lv.poll{background:transparent;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--q-muted)}
+.lv[hidden]{display:none}
 /* plan symbols: the nursery = a tree on a planting plan (circle + centre point), the main company = a plot (square).
    The glyph inside is for text readers only; the drawing is the box. */
 .sym{flex:none;width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center;vertical-align:-2px}
@@ -156,7 +161,7 @@ button{font:inherit;color:inherit}
   <div class="top">
     <div class="brand">
       <div class="brand-c"><span class="logo" id="logo"></span><div class="brand-t" id="brand">ᲥᲔᲡᲐᲚᲝ</div></div>
-      <div class="brand-m"><div id="who">&nbsp;</div><div id="at"></div></div>
+      <div class="brand-m"><div id="who">&nbsp;</div><div><i class="lv" id="lv" hidden></i><span id="at"></span></div></div>
     </div>
     <div class="test" id="test" hidden></div>
     <div class="seg" id="seg" hidden></div>
@@ -169,6 +174,6 @@ button{font:inherit;color:inherit}
     <button class="tch l" id="tch-l" data-tch="-1" hidden>‹</button><button class="tch r" id="tch-r" data-tch="1" hidden>›</button>
   </div>
 </div>
-<script type="module" src="app.js?v=1d4ede7.202611091546"></script>
+<script type="module" src="app.js?v=d80cde4.202611091557"></script>
 </body>
 </html>

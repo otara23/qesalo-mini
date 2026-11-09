@@ -12,7 +12,13 @@
 // Deep links: ?tab=<tab>&co=<company> (the bot's web_app buttons), or a Direct Link's startapp=<tab>[_<company>].
 // Versions: the published copy stamps ?v=<version> on every module and the strings (deploy/pages-publish.mjs); a
 // local copy has none.
-import { t, tOr, setStrings, esc, mt, caps, SYM, symOf, tm, card } from "./ui.js?v=1d4ede7.202611091546";
+// Live (wave W-RT, ./live.js): the open tab updates itself - a Realtime socket on surface_versions (the address and the
+// public key come in the function's `live`), a quiet reload of the open tab when its version grows (debounced; scroll,
+// open rows and the view's params() kept), polling with `since` while the socket is down, nothing while hidden, and a
+// reload that keeps the tab, company and filters when the site serves a newer version.json. A load sequence guard: an
+// answer that a newer load (a tap) has overtaken is dropped.
+import { t, tOr, setStrings, esc, mt, caps, SYM, symOf, tm, card } from "./ui.js?v=d80cde4.202611091557";
+import { createLive } from "./live.js?v=d80cde4.202611091557";
 
 // the function's address is written once, in index.html (<meta name="qesalo-api">): the doctor's Pages check reads the
 // served index.html for it (lib/doctor/checks.mjs PAGES.marker)
@@ -24,6 +30,7 @@ const $ = (s) => document.querySelector(s);
 
 // scope = which company the person looks at: nursery | main | both (the bot's switch; ?co= in the link)
 let me = null, cur = "home", badge = 0, scope = new URLSearchParams(location.search).get("co") || null;
+let seq = 0, busy = false;   // the newest load owns the sheet; busy = a load is in flight (the live refresh waits)
 // tab -> its view module, loaded once. A module's default export draws the sheet; two optional hooks (W-PNL's request):
 //   params()               -> the view's own request fields (a period, a drill-down), sent with every load of that tab,
 //                             so they survive the company switch and a refetch
@@ -79,15 +86,24 @@ function drawTabs() {
 }
 
 const skeleton = () => `<div class="card"><div class="skel"></div><div class="skel" style="width:60%"></div><div class="skel" style="width:80%"></div></div>`;
-async function load(tab, co, extra) {
-  cur = tab; if (co) scope = co; if (me) drawTabs();
-  $("#view").innerHTML = skeleton();
+// opt.quiet (the live refresh): no skeleton, `since` sent, an { unchanged } answer only moves the time, a failure keeps
+// the sheet, scroll and open rows stay
+async function load(tab, co, extra, opt) {
+  const quiet = !!(opt && opt.quiet), my = ++seq;
+  busy = true;
+  cur = tab; if (co) scope = co; if (me && !quiet) drawTabs();
+  if (!quiet) $("#view").innerHTML = skeleton();
   try {
     // the open view's own fields (its params() hook) when nothing else is asked; a ✓ or a reload passes its own
     const m0 = mods[tab] ? await mods[tab] : null;
     if (!extra && m0 && m0.params) extra = m0.params() || null;
-    const r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ initData: TG ? TG.initData : "", tab, company: scope, ...(extra || {}) }) });
+    const since = quiet ? live.since(tab) : null;
+    const r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ initData: TG ? TG.initData : "", tab, company: scope, ...(extra || {}), ...(since ? { since } : {}) }) });
     const b = await r.json();
+    if (my !== seq) return;                       // a newer load (a tap) owns the sheet
+    if (quiet && !r.ok) return;                   // the next check tries again; the sheet stays as it is
+    if (r.ok) live.seen(b);
+    if (b.unchanged) return setAt(b.at);
     if (r.status === 401) return fail(t("app.err_401"));
     if (r.status === 403) return fail(t("app.err_403"));
     if (!r.ok) return fail(t("app.err_load", { e: esc(b.error || r.status) }));
@@ -101,8 +117,11 @@ async function load(tab, co, extra) {
     // the sheet says so; a company with no tab here yet says so. The view gets the section's company.
     const secs = b.sections || [{ company: null, data: b.data }];
     const mod = b.tab ? await modOf(b.tab) : NONE, view = mod.default || NONE.default;
+    if (my !== seq) return;
+    // a quiet redraw keeps the rows the person opened (when the list kept its length) and the scroll position
+    const opened = quiet ? [...document.querySelectorAll("#view .det.open")].map((el) => el.id) : [], nDet = document.querySelectorAll("#view [data-det]").length;
     drawHead();
-    $("#at").textContent = t("app.updated", { at: tm(b.at) });
+    setAt(b.at);
     drawTabs();
     $("#view").innerHTML = !b.tab ? card(esc(me.companies[me.scope] ? me.companies[me.scope].name : ""), "", `<div class="empty">${t("app.no_tabs")}</div>`)
       : (me.scope === "both" ? `<div class="note">${t("app.both_note")}</div>` : "")
@@ -113,11 +132,40 @@ async function load(tab, co, extra) {
       ? `<div class="banner ok">${t("app.acked_ok", { title: esc(b.acked.title), by: esc(b.acked.by || ""), at: b.acked.at ? " · " + tm(b.acked.at) : "" })}</div>`
       : `<div class="banner">${t("app.acked_fail")}</div>`);
     if (secs.some((x) => ((x.data && x.data.alerts) || []).some((a) => a.ack))) $("#foot").textContent = t("app.foot_ack");
+    if (opened.length && document.querySelectorAll("#view [data-det]").length === nDet) for (const id of opened) {
+      const el = document.getElementById(id), row = document.querySelector(`#view [data-det="${id.slice(3)}"]`);
+      if (el) el.classList.add("open"); if (row) row.classList.add("open-r");
+    }
     caps($("#view"));
     if (mod.mount) try { mod.mount($("#view"), { reload: (x) => load(cur, null, x), me }); } catch (e) { console.error(e); }   // the sheet stays
-    window.scrollTo(0, 0);
-  } catch (e) { fail(t("app.err_net")); }
+    if (!quiet) window.scrollTo(0, 0);
+  } catch (e) { if (my === seq && !quiet) fail(t("app.err_net")); }
+  finally { if (my === seq) busy = false; }
 }
+// today's time alone (the header cell is narrow and the live mark stands before it), another day's with its date
+const setAt = (at) => {
+  const d = new Date(at), hm = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+  $("#at").textContent = t("app.updated", { at: d.toDateString() === new Date().toDateString() ? hm : tm(at) });
+};
+// the live mark beside the time: a filled square = live, a ring = checking every 30 s (shape + the words in its label)
+function drawLive(s) {
+  const el = $("#lv"); if (!el) return;
+  el.hidden = s === "off"; el.className = "lv" + (s === "live" ? "" : " poll");
+  const w = tOr(s === "live" ? "app.live_on" : "app.live_poll", ""); el.title = w; if (w) el.setAttribute("aria-label", w);
+}
+// the tripwire's reload: the same tab and company (sessionStorage, read by startTab), the view's filters stay in the
+// address (pnl keeps ?p=&r=), a unique query so neither the phone nor Pages' CDN answers with the old index.html
+function reloadKeep() {
+  try { sessionStorage.setItem("qesalo.reload", JSON.stringify({ tab: cur, co: scope, at: Date.now() })); } catch (e) {}
+  const u = new URL(location.href); u.searchParams.set("_r", String(Date.now())); location.replace(u.href);
+}
+const live = createLive({
+  version: V, refetch: () => load(cur, null, null, { quiet: true }), busy: () => busy, state: drawLive, reload: reloadKeep,
+  // only checked_at moved (the minute bank re-read, nothing changed): the header's time, and an event a view may use to
+  // move its own „as of" without asking again (detail = { company, surface, at })
+  checked: (at, r) => { setAt(at); try { document.dispatchEvent(new CustomEvent("qesalo:checked", { detail: { company: r && r.company, surface: r && r.surface, at } })); } catch (e) {} },
+  typing: () => { const a = document.activeElement; return !!(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) || [...document.querySelectorAll("textarea")].some((x) => x.value.trim()); },
+});
 function fail(msg) { $("#view").innerHTML = `<div class="card"><div class="empty">${msg}<br><br><button class="tab" data-retry="1">${t("app.retry")}</button></div></div>`; }
 
 document.addEventListener("click", (e) => {
@@ -133,6 +181,11 @@ document.addEventListener("click", (e) => {
 
 // the tab to open: a Direct Link's startapp=<tab>[_<company>] (bot-v3 §2.1), else ?tab= (the bot's buttons), else home
 function startTab() {
+  // the tripwire's reload a moment ago (W-RT): the tab and company the person was on win over the link they came by
+  try {
+    const k = JSON.parse(sessionStorage.getItem("qesalo.reload") || "null"); sessionStorage.removeItem("qesalo.reload");
+    if (k && Date.now() - k.at < 60e3 && /^[a-z_]+$/.test(k.tab || "")) { if (k.co) scope = k.co; return k.tab; }
+  } catch (e) {}
   const sp = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param) || "";
   const m = sp.match(/^([a-z_]+?)(?:_(nursery|main|both))?$/);
   if (m) { if (m[2] && !scope) scope = m[2]; return m[1]; }
