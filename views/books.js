@@ -7,8 +7,8 @@
 // bank <-> books (today's cash tab's per-currency gap and the lines on one side only) and rs.ge <-> books (the recon
 // card's rule). The main company's classes 1-5 show turnover, never a balance: their 1.01.2017 opening balances are in
 // ORIS, not here (schema/034a). A view of the books - nothing here judges a line.
-import { t, esc, num, gel, dt, card, row, stat } from "../ui.js?v=db79317.202611091605";
-import { section, accountRow, keyOf, isOpen, slot, moreOf, drillCss, cpt, monShort, amt, redrawView } from "./drill-ui.js?v=db79317.202611091605";
+import { t, esc, num, gel, dt, card, row, stat } from "../ui.js?v=86cc6d3.202611091626";
+import { section, accountRow, keyOf, isOpen, slot, moreOf, drillCss, cpt, monShort, amt, redrawView } from "./drill-ui.js?v=86cc6d3.202611091626";
 
 const L = (k, p) => t("books." + k, p);
 const V = { side: "d" };   // the matrix reading: d = debit turnover, c = credit turnover

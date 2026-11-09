@@ -10,7 +10,7 @@
 // the „სად არის" card keeps the bank total the bot's card shows.
 // The numbers: the nursery's bank total = Σ v_v1_cash.gel_equivalent (card N2), the main company's = v_main_cash
 // total_gel (card M1); the rows are ./functions/mini/cash.ts's.
-import { t, tOr, esc, num, gel, dt, tm, card, row, barRow, span, fxAmt, SYM, caps } from "../ui.js?v=db79317.202611091605";
+import { t, tOr, esc, num, gel, dt, tm, card, row, barRow, span, fxAmt, SYM, caps } from "../ui.js?v=86cc6d3.202611091626";
 
 const ymd = (s) => { const d = new Date(s); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
 const at = (asOf, fetched) => (fetched && asOf && ymd(fetched) === String(asOf).slice(0, 10) ? tm(fetched) : dt(asOf));

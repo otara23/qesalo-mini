@@ -11,7 +11,7 @@
 // A line still under review shows its best proposed purpose with a ring + „წინასწარი" (never „unassigned").
 // Below 360 px the plan becomes one column of parcels. A table of the 15 lines sits in a fold (the plan's table view).
 // Styles are this view's own (.inv-*), on the page's tokens, light and dark.
-import { esc, gel, num, dt, card, row, stat, mt } from "../ui.js?v=db79317.202611091605";
+import { esc, gel, num, dt, card, row, stat, mt } from "../ui.js?v=86cc6d3.202611091626";
 
 const KIND = (t, k) => t("funds.kind." + k);
 const shortGel = (v, t) => (v >= 1e6 ? t("funds.mln", { v: num(v / 1e6, v % 1e6 ? 2 : 0).replace(/\.?0+$/, "") }) : v >= 1e3 ? t("funds.thousand", { v: num(v / 1e3) }) : gel(v));
