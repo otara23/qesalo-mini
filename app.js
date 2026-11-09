@@ -17,8 +17,8 @@
 // open rows and the view's params() kept), polling with `since` while the socket is down, nothing while hidden, and a
 // reload that keeps the tab, company and filters when the site serves a newer version.json. A load sequence guard: an
 // answer that a newer load (a tap) has overtaken is dropped.
-import { t, tOr, setStrings, setLocale, esc, mt, caps, SYM, symOf, tm, card } from "./ui.js?v=a9fa4a0.202611091744";
-import { createLive } from "./live.js?v=a9fa4a0.202611091744";
+import { t, tOr, setStrings, setLocale, esc, mt, caps, SYM, symOf, tm, card } from "./ui.js?v=9d4cb1c.202611092057";
+import { createLive } from "./live.js?v=9d4cb1c.202611092057";
 
 // the function's address is written once, in index.html (<meta name="qesalo-api">): the doctor's Pages check reads the
 // served index.html for it (lib/doctor/checks.mjs PAGES.marker)

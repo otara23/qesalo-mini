@@ -8,7 +8,7 @@
 // followers in 28 days); a 90-day line of views on one axis (≤ 2 series: Facebook solid, Instagram dashed - texture,
 // legend and end labels carry identity, never colour); a 13-week grid of posts (ink blocks sized by interactions); the
 // top posts with Meta's own „გახსნა" link; the accounts; the title block with the source and Meta's 48-hour lag.
-import { t, esc, num, dt } from "../ui.js?v=a9fa4a0.202611091744";
+import { t, esc, num, dt } from "../ui.js?v=9d4cb1c.202611092057";
 
 const L = (k, p) => t("marketing." + k, p);
 const MINUS = "−";
