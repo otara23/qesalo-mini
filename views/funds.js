@@ -11,7 +11,7 @@
 // A line still under review shows its best proposed purpose with a ring + „წინასწარი" (never „unassigned").
 // Below 360 px the plan becomes one column of parcels. A table of the 15 lines sits in a fold (the plan's table view).
 // Styles are this view's own (.inv-*), on the page's tokens, light and dark.
-import { esc, gel, num, dt, card, row, stat, mt, lang } from "../ui.js?v=359f3d6.202611091658";
+import { esc, gel, num, dt, card, row, stat, mt, lang } from "../ui.js?v=dc00dfd.202611091715";
 // W-I18N: a purpose in the language on screen (the function sends ka / ru / en, written by lib/invest after the wall), else ka
 const said = (i) => (i && (i[lang()] || i.ka)) || "";
 

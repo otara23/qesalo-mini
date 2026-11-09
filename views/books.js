@@ -5,10 +5,12 @@
 // credit turnover - two readings, a toggle), a class opens to its accounts (turnover, balance, last entry), an account
 // to its months, a month to its lines (./drill-ui.js; masters and the accountant too - Q2); the nursery also gets
 // bank <-> books (today's cash tab's per-currency gap and the lines on one side only) and rs.ge <-> books (the recon
-// card's rule). The main company's classes 1-5 show turnover, never a balance: their 1.01.2017 opening balances are in
-// ORIS, not here (schema/034a). A view of the books - nothing here judges a line.
-import { t, esc, num, gel, dt, card, row, stat } from "../ui.js?v=359f3d6.202611091658";
-import { section, accountRow, keyOf, isOpen, slot, moreOf, drillCss, cpt, monShort, amt, redrawView } from "./drill-ui.js?v=359f3d6.202611091658";
+// card's rule). Balances are ORIS's for both companies (polish3, 9.11: the open period's opening + the journal since,
+// schema/034a + 034b; the main company's months before 1.01.2023 show a balance only for classes 6-9), so the main
+// company's matrix note is the nursery's (m_note_main said 1-5 had no balance). A view of the books - nothing here
+// judges a line.
+import { t, esc, num, gel, dt, card, row, stat } from "../ui.js?v=dc00dfd.202611091715";
+import { section, accountRow, keyOf, isOpen, slot, moreOf, drillCss, cpt, monShort, amt, redrawView } from "./drill-ui.js?v=dc00dfd.202611091715";
 
 const L = (k, p) => t("books." + k, p);
 const V = { side: "d" };   // the matrix reading: d = debit turnover, c = credit turnover
@@ -56,7 +58,7 @@ function matrix(d, co) {
   }
   s += `</div>`;
   const span = `${monShort(M.months[0])}–${monShort(M.months[M.months.length - 1])} ${M.months[M.months.length - 1].slice(0, 4)} · ${L("m_unit")}`;
-  const note = co === "main" ? L("m_note_main") : L("m_note");
+  const note = L("m_note");
   return `<div class="card bk-c"><div class="card-h"><div class="card-t">${esc(L("m_title"))}</div><div class="card-n">${esc(span)}</div></div>${head}${s}`
     + `<div class="note bk-n">${esc(note)}${M.pending ? " " + esc(L("m_pending", { n: M.pending })) : ""}${active.length ? "" : " " + esc(L("m_empty"))}</div></div>`;
 }

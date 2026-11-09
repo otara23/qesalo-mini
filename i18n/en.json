@@ -107,7 +107,8 @@
   "doctor_edge": "Doctor: the panel's Edge Function",
   "doctor_pages": "Doctor: the panel's page (GitHub Pages)",
   "doctor_ai": "Doctor: OpenRouter, ElevenLabs, question budget",
-  "doctor_kb": "Doctor: knowledge base nightly build and deploy"
+  "doctor_kb": "Doctor: knowledge base nightly build and deploy",
+  "oris_opening": "ORIS opening balances (debts)"
  },
  "app": {
   "brand": "QESALO",
@@ -368,7 +369,6 @@
   "m_unit": "thousand ₾",
   "m_aria": "Class {c}: {n} — accounts",
   "m_note": "Monthly turnover in lari (ORIS). Tap a class for its accounts, an account for its months, a month for its entries.",
-  "m_note_main": "Monthly turnover in lari (ORIS). Classes 1–5 show turnover, not balances: their 2017 opening balances are in ORIS and not here yet.",
   "m_pending": "Months being recalculated: {n} — figures will refresh in a few seconds.",
   "m_empty": "No entries in these months.",
   "c_head": "Accounts: {n} · {a}–{b}",

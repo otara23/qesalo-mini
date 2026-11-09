@@ -8,7 +8,7 @@
 // followers in 28 days); a 90-day line of views on one axis (≤ 2 series: Facebook solid, Instagram dashed - texture,
 // legend and end labels carry identity, never colour); a 13-week grid of posts (ink blocks sized by interactions); the
 // top posts with Meta's own „გახსნა" link; the accounts; the title block with the source and Meta's 48-hour lag.
-import { t, esc, num, dt } from "../ui.js?v=359f3d6.202611091658";
+import { t, esc, num, dt } from "../ui.js?v=dc00dfd.202611091715";
 
 const L = (k, p) => t("marketing." + k, p);
 const MINUS = "−";
@@ -35,7 +35,10 @@ function line(series, today) {
   const t0 = Date.parse(today) - 89 * 864e5, x = (d) => ((Date.parse(d) - t0) / (89 * 864e5)) * 100, y = (v) => 100 - (v / hi) * 100;
   const grid = [0, hi / 2, hi].map((v) => `<div class="mk-g${v === 0 ? " z" : ""}" style="bottom:${(100 * v / hi).toFixed(2)}%"><span>${num(v)}</span></div>`).join("");
   const paths = series.map((s, i) => `<polyline class="mk-s${i}" points="${s.points.map((p) => `${x(p.d).toFixed(2)},${y(p.v).toFixed(2)}`).join(" ")}" vector-effect="non-scaling-stroke"/>`).join("");
-  const ends = series.map((s, i) => { const p = s.points[s.points.length - 1]; return p ? `<div class="mk-end${x(p.d) > 70 ? " r" : ""}" style="left:${x(p.d).toFixed(2)}%;bottom:${(100 - y(p.v)).toFixed(2)}%">${esc(pf(s.platform))} ${num(p.v)}</div>` : ""; }).join("");
+  // the end labels: two that would touch (< 14 % of the plot apart) are pushed apart around their middle
+  const lab = series.map((s) => { const p = s.points[s.points.length - 1]; return p ? { s, p, b: 100 - y(p.v) } : null; });
+  if (lab[0] && lab[1] && Math.abs(lab[0].b - lab[1].b) < 14) { const m = (lab[0].b + lab[1].b) / 2, up = lab[0].b >= lab[1].b ? 0 : 1; lab[up].b = Math.min(100, m + 7); lab[1 - up].b = Math.max(0, m - 7); }
+  const ends = lab.map((l) => (l ? `<div class="mk-end${x(l.p.d) > 70 ? " r" : ""}" style="left:${x(l.p.d).toFixed(2)}%;bottom:${l.b.toFixed(2)}%">${esc(pf(l.s.platform))} ${num(l.p.v)}</div>` : "")).join("");
   const xs = [89, 59, 29, 0].map((k) => `<span style="left:${(100 - (k / 89) * 100).toFixed(1)}%">${esc(dt(new Date(Date.parse(today) - k * 864e5).toISOString().slice(0, 10)))}</span>`).join("");
   const leg = series.map((s, i) => `<span><i class="mk-key k${i}"></i>${esc(pf(s.platform))} · ${esc(L("key." + s.key))}</span>`).join("");
   return `<div class="mk-leg">${leg}</div><div class="mk-plot">${grid}<svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="${esc(L("chart_aria"))}">${paths}</svg>${ends}</div><div class="mk-x">${xs}</div>`;
@@ -63,7 +66,7 @@ export default function view(d, me, _t, company) {
     + `<div class="grid2"><div class="stat"><div class="stat-l">${esc(L("eng"))}</div><div class="stat-v">${T.engagement28 == null ? "—" : num(T.engagement28, 1) + " %"}</div><div class="stat-s">${esc(L("eng_s"))}</div></div>`
     + `<div class="stat"><div class="stat-l">${esc(L("new"))}</div><div class="stat-v">${T.new28 == null ? "—" : num(T.new28)}</div><div class="stat-s">${esc(L("new_s"))}</div></div></div></div>`;
   if (d.series.length) s += `<div class="card mk-ch"><div class="card-h"><div class="card-t">${esc(L("chart"))}</div><div class="card-n">${esc(L("days90"))}</div></div>${line(d.series, today)}</div>`;
-  s += `<div class="card"><div class="card-h"><div class="card-t">${esc(L("grid"))}</div><div class="card-n">${esc(L("freq", { n: num(d.posts28), w: num(d.per_week, 1) }))}</div></div>${weeks(d.grid, today)}</div>`;
+  s += `<div class="card"><div class="card-h"><div class="card-t">${esc(L("grid"))}</div><div class="card-n">${esc(L("days90"))}</div></div><div class="mk-fq">${esc(L("freq", { n: num(d.posts28), w: num(d.per_week, 1) }))}</div>${weeks(d.grid, today)}</div>`;
   s += `<div class="card"><div class="card-h"><div class="card-t">${esc(L("top"))}</div><div class="card-n">${esc(L("days90"))}</div></div>`
     + (d.top.length ? d.top.map((p, i) => `<div class="row mk-p"><span class="mk-n">${i + 1}</span><div class="row-m"><div class="row-t">${esc(pf(p.platform))} · ${esc(L("kind." + (p.kind || "other")))} · ${esc(dtY(p.at, today))}</div>`
       + `<div class="row-c">${esc(p.account || "")}${p.reach != null ? " · " + esc(L("reach_n", { n: num(p.reach) })) : ""}${p.views != null ? " · " + esc(L("views_n", { n: num(p.views) })) : ""}</div></div>`
@@ -115,6 +118,7 @@ function css() {
 .mk-wr i.p b{display:block;background:var(--q-ink)}
 .mk-wr i.p em{position:absolute;font:700 10px/1 var(--ff);font-style:normal;color:var(--q-on-invert)}
 .mk-wl{font-size:11.5px;color:var(--q-muted);padding-top:6px}
+.mk-fq{font:600 13px/18px var(--ff);color:var(--q-ink);padding:2px 0 6px}
 .mk-p .mk-n{flex:none;width:22px;height:22px;border:1.5px solid var(--q-rule);border-radius:50%;display:flex;align-items:center;justify-content:center;font:700 11px/1 var(--ff)}
 .mk-p .row-v small{display:block}
 .mk-open{display:inline-block;margin-top:4px;min-height:28px;padding:5px 8px;border:1.5px solid var(--q-rule);font:700 11.5px/14px var(--ff);font-stretch:75%;letter-spacing:.05em;color:var(--q-ink);text-decoration:none}

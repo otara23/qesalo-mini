@@ -17,8 +17,8 @@
 // open rows and the view's params() kept), polling with `since` while the socket is down, nothing while hidden, and a
 // reload that keeps the tab, company and filters when the site serves a newer version.json. A load sequence guard: an
 // answer that a newer load (a tap) has overtaken is dropped.
-import { t, tOr, setStrings, setLocale, esc, mt, caps, SYM, symOf, tm, card } from "./ui.js?v=359f3d6.202611091658";
-import { createLive } from "./live.js?v=359f3d6.202611091658";
+import { t, tOr, setStrings, setLocale, esc, mt, caps, SYM, symOf, tm, card } from "./ui.js?v=dc00dfd.202611091715";
+import { createLive } from "./live.js?v=dc00dfd.202611091715";
 
 // the function's address is written once, in index.html (<meta name="qesalo-api">): the doctor's Pages check reads the
 // served index.html for it (lib/doctor/checks.mjs PAGES.marker)
@@ -268,5 +268,6 @@ async function boot() {
   load(tab);
   // the 💬 composer (W-FB, plans/_work/bot-v3-feedback.md PR-A - applied by i18n in its app.js turn)
   import("./feedback.js" + Q).then((m) => { fbMod = m; m.mount({ api: API, tg: TG, t }); }).catch(() => {});
+  import("./report.js" + Q).then((m) => m.mount({ api: API, tg: TG })).catch(() => {});   // W-REP: the 📄 cell (a PDF to the chat)
 }
 boot();
