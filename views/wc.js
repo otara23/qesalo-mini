@@ -5,8 +5,8 @@
 // account opens to its months and lines (./drill-ui.js; a supplier's lines read as debt: + = owed more). The 18.06
 // purchase debt (3 1 10 26) is not in the payables by the standing ruling, and says so. The main company: after its
 // chart of accounts is checked (§3.5). A view of the books - nothing here judges an account.
-import { t, esc, num, gel, dt, card, row } from "../ui.js?v=5309b78.202611091541";
-import { section, accountRow, keyOf, isOpen, drillCss, amt } from "./drill-ui.js?v=5309b78.202611091541";
+import { t, esc, num, gel, dt, card, row } from "../ui.js?v=1d4ede7.202611091546";
+import { section, accountRow, keyOf, isOpen, drillCss, amt, toggleLocal } from "./drill-ui.js?v=1d4ede7.202611091546";
 
 const L = (k, p) => t("wc." + k, p);
 // the order and words of today's tab; payables read as a positive debt
@@ -59,7 +59,7 @@ if (typeof document !== "undefined" && !window.__wcView) {
   window.__wcView = true;
   const act = (el) => {
     const TG = window.Telegram && window.Telegram.WebApp; if (TG && TG.HapticFeedback) TG.HapticFeedback.selectionChanged();
-    import("./drill-ui.js").then((m) => m.toggleLocal(el.dataset.drWc));
+    toggleLocal(el.dataset.drWc);   // a static import: the published page stamps ?v= on static imports only (one module instance)
   };
   document.addEventListener("click", (e) => { const el = e.target.closest("[data-dr-wc]"); if (el) act(el); });
   document.addEventListener("keydown", (e) => { const el = (e.key === "Enter" || e.key === " ") && e.target.closest && e.target.closest("[data-dr-wc]"); if (el) { e.preventDefault(); act(el); } });

@@ -12,7 +12,7 @@
 // Deep links: ?tab=<tab>&co=<company> (the bot's web_app buttons), or a Direct Link's startapp=<tab>[_<company>].
 // Versions: the published copy stamps ?v=<version> on every module and the strings (deploy/pages-publish.mjs); a
 // local copy has none.
-import { t, tOr, setStrings, esc, mt, caps, SYM, symOf, tm, card } from "./ui.js?v=5309b78.202611091541";
+import { t, tOr, setStrings, esc, mt, caps, SYM, symOf, tm, card } from "./ui.js?v=1d4ede7.202611091546";
 
 // the function's address is written once, in index.html (<meta name="qesalo-api">): the doctor's Pages check reads the
 // served index.html for it (lib/doctor/checks.mjs PAGES.marker)

@@ -10,7 +10,7 @@
 // the „სად არის" card keeps the bank total the bot's card shows.
 // The numbers: the nursery's bank total = Σ v_v1_cash.gel_equivalent (card N2), the main company's = v_main_cash
 // total_gel (card M1); the rows are ./functions/mini/cash.ts's.
-import { t, tOr, esc, num, gel, dt, tm, card, row, barRow, span, fxAmt } from "../ui.js?v=5309b78.202611091541";
+import { t, tOr, esc, num, gel, dt, tm, card, row, barRow, span, fxAmt, SYM, caps } from "../ui.js?v=1d4ede7.202611091546";
 
 const ymd = (s) => { const d = new Date(s); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
 const at = (asOf, fetched) => (fetched && asOf && ymd(fetched) === String(asOf).slice(0, 10) ? tm(fetched) : dt(asOf));
@@ -59,10 +59,9 @@ export default function view(d, me, _t, co) {
   P.me = me; P.secs.push({ company: co, data: d });
   return sheet(d, co);
 }
-async function redraw() {
+function redraw() {
   const el = document.getElementById("view"); if (!el || !P.me) return;
   const on = document.querySelector(".tab.on"); if (on && on.dataset.t !== "cash") return;
-  const { SYM, caps } = await import("../ui.js");
   const both = P.me.scope === "both";
   el.innerHTML = (both ? `<div class="note">${t("app.both_note")}</div>` : "")
     + P.secs.map((x) => (both && x.company ? `<div class="co-h">${SYM[x.company] || ""} ${esc(P.me.companies[x.company].name)}</div>` : "") + sheet(x.data, x.company)).join("");
