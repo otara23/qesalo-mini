@@ -10,7 +10,7 @@
 // Design C „ნახაზი": framed sheet, two figures as the hero cells (one per side - never a difference), a sort control
 // (amount | age) as a segmented strip, rows with a scale bar (share of the largest row of that list), tap = the
 // documents sheet (the shell's .det), the title block with sources and the rule at the end. Nothing eases.
-import { t, esc, num, gel, dt, caps, cut } from "../ui.js?v=dc00dfd.202611091715";
+import { t, esc, num, gel, dt, caps, cut } from "../ui.js?v=a9fa4a0.202611091744";
 
 const L = (k, p) => t("debts." + k, p);
 const S = { me: null, secs: [], pass: false, sort: "amount", all: {} };
