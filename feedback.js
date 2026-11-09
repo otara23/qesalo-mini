@@ -149,6 +149,14 @@ async function open() {
   try { const r = await call({ op: "feedback_list" }); if (r.status === 200) drawList(r.body.list); } catch (e) {}
 }
 
+// W-I18N: the page switched its language (<html lang>): the 💬 button in the new words (an open sheet takes them on its
+// next open)
+export function relabel() {
+  if (!opts) return;
+  lang = STR[document.documentElement.lang] ? document.documentElement.lang : "ka"; S = STR[lang];
+  const b = $("#fb-open"); if (b) b.textContent = mt(S.open);
+}
+
 export function mount(o) {
   if (opts || !o || !o.api) return;
   opts = o; lang = STR[document.documentElement.lang] ? document.documentElement.lang : "ka"; S = STR[lang];

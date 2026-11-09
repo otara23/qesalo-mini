@@ -1,5 +1,5 @@
 // მთავარი (the nursery's home). A view: (data of one company's section, me, t, company) -> HTML of the sheet's cells.
-import { t, esc, num, gel, dt, daysAgo, card, row, stat, lvl } from "../ui.js?v=86cc6d3.202611091626";
+import { t, esc, num, gel, dt, daysAgo, card, row, stat, lvl } from "../ui.js?v=359f3d6.202611091658";
 
 export default function view(d, me) {
   const h = d.home || {}; const bankOld = daysAgo(h.bank_as_of);

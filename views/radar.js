@@ -1,6 +1,6 @@
 // რადარი (the main company; wave polish1 - the tender radar of featA): every open tender on the radar, our history at
 // its procurer; facts only, no advice.
-import { t, esc, num, gel, card, row, stat, dy, cut, radarName } from "../ui.js?v=86cc6d3.202611091626";
+import { t, esc, num, gel, card, row, stat, dy, cut, radarName } from "../ui.js?v=359f3d6.202611091658";
 
 export default function view(d) {
   const T = d.tenders || [], amt = (x) => (x.estimate_gel != null ? gel(x.estimate_gel) : esc(x.estimate_ccy || "—"));

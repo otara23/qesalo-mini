@@ -11,7 +11,9 @@
 // A line still under review shows its best proposed purpose with a ring + „წინასწარი" (never „unassigned").
 // Below 360 px the plan becomes one column of parcels. A table of the 15 lines sits in a fold (the plan's table view).
 // Styles are this view's own (.inv-*), on the page's tokens, light and dark.
-import { esc, gel, num, dt, card, row, stat, mt } from "../ui.js?v=86cc6d3.202611091626";
+import { esc, gel, num, dt, card, row, stat, mt, lang } from "../ui.js?v=359f3d6.202611091658";
+// W-I18N: a purpose in the language on screen (the function sends ka / ru / en, written by lib/invest after the wall), else ka
+const said = (i) => (i && (i[lang()] || i.ka)) || "";
 
 const KIND = (t, k) => t("funds.kind." + k);
 const shortGel = (v, t) => (v >= 1e6 ? t("funds.mln", { v: num(v / 1e6, v % 1e6 ? 2 : 0).replace(/\.?0+$/, "") }) : v >= 1e3 ? t("funds.thousand", { v: num(v / 1e3) }) : gel(v));
@@ -123,7 +125,7 @@ function item(t, i, detail) {
   const adm = detail ? [i.who && i.who.length ? esc(i.who.join(", ")) : "", i.status === "confirmed" || i.status === "changed"
       ? t(i.status === "changed" ? "funds.changed_by" : "funds.confirmed_by", { who: esc(i.decided_by || ""), d: dt(i.decided_at) }) + (i.status === "changed" && i.proposed_line ? " " + t("funds.was", { l: i.proposed_line.slice(6) }) : "")
       : t("funds.conf_" + i.conf_word, { c: num(i.conf, 1) }) + (i.alts && i.alts.length ? " · " + t("funds.or") + " " + i.alts.map((a) => esc(a.line.slice(6) + " " + t("funds.line." + a.line.slice(6)))).join(", ") : "")].filter(Boolean).join(" · ") : "";
-  return `<li class="inv-it"><span class="inv-it-m">${esc(i.ka)}<small>${dt(i.date)}${i.ev && i.ev.length ? " · " + evLine(t, i.ev) : ""}</small>${adm ? `<span class="inv-adm">${adm}</span>` : ""}${i.pending ? `<span class="inv-pend">${esc(mt(t("funds.pending")))}</span>` : ""}</span><span class="inv-it-v">${gel(i.gel)}</span></li>`;
+  return `<li class="inv-it"><span class="inv-it-m">${esc(said(i))}<small>${dt(i.date)}${i.ev && i.ev.length ? " · " + evLine(t, i.ev) : ""}</small>${adm ? `<span class="inv-adm">${adm}</span>` : ""}${i.pending ? `<span class="inv-pend">${esc(mt(t("funds.pending")))}</span>` : ""}</span><span class="inv-it-v">${gel(i.gel)}</span></li>`;
 }
 
 function sheet(t, l, detail) {
@@ -154,13 +156,13 @@ export default function view(d, me, t) {
     + `<div class="inv-key"><span><span class="inv-st ring"></span>${t("funds.st.none")}</span><span><span class="inv-st check"></span>${t("funds.st.done")}</span><span><span class="inv-st tri"></span>${t("funds.st.over")}</span></div>`
     + L.filter((l) => l.budget > 0).map((l) => sheet(t, l, detail)).join("")
     + `<div class="row tap" data-det="tab"><div class="row-m"><div class="row-t">${t("funds.as_table")}</div></div><span class="chev">›</span></div>`
-    + `<div class="det inv-sheet" id="dettab"><table class="inv-tab"><tr><th>#</th><th>${t("funds.col_line")}</th><th>${t("funds.spent")}</th><th>${t("funds.budget")}</th><th>%</th></tr>${L.map((l) => `<tr><td>${l.nn}</td><td>${esc(l.ka)}</td><td>${num(l.spent)}</td><td>${num(l.budget)}</td><td>${pctTxt(l.pct)}</td></tr>`).join("")}</table></div>`);
+    + `<div class="det inv-sheet" id="dettab"><table class="inv-tab"><tr><th>#</th><th>${t("funds.col_line")}</th><th>${t("funds.spent")}</th><th>${t("funds.budget")}</th><th>%</th></tr>${L.map((l) => `<tr><td>${l.nn}</td><td>${esc(lineName(t, l))}</td><td>${num(l.spent)}</td><td>${num(l.budget)}</td><td>${pctTxt(l.pct)}</td></tr>`).join("")}</table></div>`);
 
   // where it went: every purchase by amount, one scale of shares
   const all = L.flatMap((l) => l.items.map((i) => ({ ...i, nn: l.nn }))).sort((a, b) => b.gel - a.gel);
   s += card(t("funds.where_t"), t("funds.where_n", { n: all.length }), all.map((i) => {
     const w = d.spent ? 100 * i.gel / d.spent : 0, bw = all.length ? 100 * i.gel / all[0].gel : 0;
-    return `<div class="row"><div class="row-m"><div class="row-t">${esc(i.ka)}</div><div class="row-c">${i.nn} · ${esc(t("funds.line." + i.nn))} · ${dt(i.date)}</div>${i.pending ? `<span class="inv-pend">${esc(mt(t("funds.pending")))}</span>` : ""}<div class="bar"><i style="width:${Math.max(1, Math.min(100, bw)).toFixed(1)}%"></i></div></div><div class="row-v">${gel(i.gel)}<small>${num(w, w < 10 ? 1 : 0)} %</small></div></div>`;
+    return `<div class="row"><div class="row-m"><div class="row-t">${esc(said(i))}</div><div class="row-c">${i.nn} · ${esc(t("funds.line." + i.nn))} · ${dt(i.date)}</div>${i.pending ? `<span class="inv-pend">${esc(mt(t("funds.pending")))}</span>` : ""}<div class="bar"><i style="width:${Math.max(1, Math.min(100, bw)).toFixed(1)}%"></i></div></div><div class="row-v">${gel(i.gel)}<small>${num(w, w < 10 ? 1 : 0)} %</small></div></div>`;
   }).join(""));
 
   // the months: the farm purchase in its own cell, then the spending strip (one scale, direct labels)

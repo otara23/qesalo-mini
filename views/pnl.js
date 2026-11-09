@@ -13,7 +13,7 @@
 // the selected column live here; a change re-asks the function itself (the same endpoint and body as app.js, plus
 // `pnl: { p, r, only, d }`) and redraws #view, keeping the old sheet at reduced opacity while it loads - until app.js
 // offers the view hooks of bot-v3-pnl.md PR-2. The period is kept in the address (?tab=pnl&p=…&r=…).
-import { t, esc, num, gel, dt, tm, mt, caps, SYM, cut } from "../ui.js?v=86cc6d3.202611091626";
+import { t, esc, num, gel, dt, tm, mt, caps, SYM, cut } from "../ui.js?v=359f3d6.202611091658";
 
 const API = "https://owgvoonnsccujzpbprpw.supabase.co/functions/v1/mini";   // = mini/app.js API (PR-2: a hook instead)
 const S = { me: null, secs: [], pass: false, p: null, r: null, open: {}, acct: {}, lines: {}, sel: {}, tbl: {}, custom: false, busy: false, err: null, url: false };
@@ -125,7 +125,7 @@ function catRows(co, d, keys, total, numbered, o = {}) {
     const v = (o.sign ?? -1) * Number(c.amount), open = S.open[co] === k, tap = d.can && d.can.accounts;
     const val = o.noValue ? "" : o.pill ? `<span class="pill p-warn">${gel(Math.abs(v))}</span>` : sg(v);
     const head = `<span class="pl-k${numbered ? "" : " no"}">${numbered ? `<i class="f${i + 1}"></i><b>${i + 1}</b>` : ""}</span><span class="row-m"><span class="row-t">${esc(o.label || L("cat." + k))}</span>`
-      + `<span class="row-c">${o.sub ? esc(o.sub) + " · " : ""}${total > 0 && v > 0 ? esc(L("of_total", { p: (100 * v / total).toFixed(1) })) + " · " : ""}${esc(L("lines_n", { n: num(c.lines) }))}</span></span><span class="row-v">${val}</span>`;
+      + `<span class="row-c">${o.sub ? esc(o.sub) + " · " : ""}${total > 0 && v > 0 ? esc(L("of_total", { p: num(100 * v / total, 1) })) + " · " : ""}${esc(L("lines_n", { n: num(c.lines) }))}</span></span><span class="row-v">${val}</span>`;
     return tap ? `<button class="row pl-row tap${open ? " open-r" : ""}" data-pl-cat="${co}|${k}" aria-expanded="${open}">${head}<span class="chev">›</span></button>${open ? drill(co, d, c) : ""}`
       : `<div class="row pl-row">${head}</div>`;
   }).join("");

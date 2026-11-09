@@ -4,6 +4,13 @@
 // draws. Nothing here fetches or reads the page's state.
 let STR = {};
 export function setStrings(s) { STR = s || {}; }
+// W-I18N (bot-v3 §2.4): the language on screen - ka | ru | en (mini/app.js sets it with the strings). Numbers per locale:
+// ka as before (1,234,567.89 - the panel's figures since design2), ru 1 234 567,89 (narrow spaces, decimal comma), en
+// 1,234,567.89; ₾ after the number in all three. Dates: the day + mon_short of the language (9 ნოე / 9 ноя / 9 Nov).
+let LANG = "ka";
+const LOCALE = { ka: "en-US", ru: "ru-RU", en: "en-US" };
+export function setLocale(l) { LANG = LOCALE[l] ? l : "ka"; }
+export const lang = () => LANG;
 const lookup = (k) => String(k).split(".").reduce((o, x) => (o == null ? undefined : o[x]), STR);
 // t("cash.total") -> the string; t("home.bank_old", { n: 3 }) fills {n}; an array or object comes back as it is; a key
 // that is not in the file comes back as the key itself (visible on screen, never a blank)
@@ -17,7 +24,7 @@ export function t(k, p) {
 export const tOr = (k, fallback) => (lookup(k) == null ? fallback : t(k));
 
 export const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-export const num = (v, d = 0) => v == null || v === "" ? "—" : Number(v).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
+export const num = (v, d = 0) => v == null || v === "" ? "—" : Number(v).toLocaleString(LOCALE[LANG], { minimumFractionDigits: d, maximumFractionDigits: d });
 export const gel = (v, d = 0) => v == null ? "—" : num(v, d) + " ₾";   // no-break space: „₾" never wraps onto a line alone
 export const dt = (s) => { if (!s) return "—"; const d = new Date(String(s).length <= 10 ? s + "T00:00:00" : s); return d.getDate() + " " + t("mon_short")[d.getMonth()]; };
 export const tm = (s) => { const d = new Date(s); return dt(s) + " " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); };
@@ -46,8 +53,9 @@ export const span = (a, b) => (a === b ? dt(a) : dt(a) + "–" + dt(b));
 export const barRow = (t, c, v, w) => `<div class="row"><div class="row-m"><div class="row-t">${t}</div>${c ? `<div class="row-c">${c}</div>` : ""}<div class="bar"><i style="width:${Math.max(0, Math.min(100, Number(w) || 0))}%"></i></div></div><div class="row-v">${v}</div></div>`;
 // dates of another year than today's carry the year
 export const dy = (s, today) => (!s ? "—" : dt(s) + (today && String(s).slice(0, 4) !== String(today).slice(0, 4) ? " " + String(s).slice(0, 4) : ""));
-// „31 იან 2028-მდე" in one piece (a line may not break at the suffix's hyphen)
-export const until = (s, today, suffix) => `<span class="nw">${dy(s, today)}${suffix}</span>`;
+// „31 იან 2028-მდე" in one piece (a line may not break at the suffix's hyphen); a suffix with {d} is a template (ru/en:
+// „до {d}", „since {d}" - the preposition goes before the date)
+export const until = (s, today, suffix) => `<span class="nw">${String(suffix).includes("{d}") ? String(suffix).replace("{d}", dy(s, today)) : dy(s, today) + suffix}</span>`;
 export const daysIn = (n) => (n === 0 ? t("days.today") : n === 1 ? t("days.tomorrow") : t("days.in", { n }));
 export const quotes = (s) => String(s == null ? "" : s).replace(/"([^"]*)"/g, "„$1“");
 // the cards' short names (data rules on the Georgian names as the sources write them, not screen words): no legal-form

@@ -17,15 +17,42 @@
 // open rows and the view's params() kept), polling with `since` while the socket is down, nothing while hidden, and a
 // reload that keeps the tab, company and filters when the site serves a newer version.json. A load sequence guard: an
 // answer that a newer load (a tap) has overtaken is dropped.
-import { t, tOr, setStrings, esc, mt, caps, SYM, symOf, tm, card } from "./ui.js?v=86cc6d3.202611091626";
-import { createLive } from "./live.js?v=86cc6d3.202611091626";
+import { t, tOr, setStrings, setLocale, esc, mt, caps, SYM, symOf, tm, card } from "./ui.js?v=359f3d6.202611091658";
+import { createLive } from "./live.js?v=359f3d6.202611091658";
 
 // the function's address is written once, in index.html (<meta name="qesalo-api">): the doctor's Pages check reads the
 // served index.html for it (lib/doctor/checks.mjs PAGES.marker)
 const API = document.querySelector('meta[name="qesalo-api"]').content;
 const TG = window.Telegram && window.Telegram.WebApp;
 const V = new URL(import.meta.url).searchParams.get("v"), Q = V ? "?v=" + V : "";
-const LANG = "ka";   // W-I18N: the person's language (bot_people.lang) and the header switch
+// W-I18N (bot-v3 §2.4): the language on screen, ka | ru | en. The first draw takes the one this phone last showed this
+// person (localStorage - a convenience, nothing depends on it), else Telegram's language_code as a hint, else ka; then
+// the function's me.lang decides (bot_people.lang of the person on screen; under /as the person looked at). The header's
+// ქარ · РУС · ENG writes the REAL person's row through {op: set_lang}; under /as a tap changes only this screen's words.
+const LANGS = ["ka", "ru", "en"], LANG_LABEL = { ka: "ქარ", ru: "РУС", en: "ENG" };
+let LANG = "ka", localLang = null;
+const STRS = {};
+const tgUser = () => (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) || {};
+const langKey = () => "qesalo.lang." + (tgUser().id || "-");
+const RU_TOO = ["ru", "uk", "be", "kk", "ky", "uz", "az", "hy", "tg", "tk", "mo"];
+const hintLang = () => { const c = String(tgUser().language_code || "").toLowerCase().split(/[-_]/)[0]; return !c ? null : c === "ka" ? "ka" : RU_TOO.includes(c) ? "ru" : "en"; };
+const storedLang = () => { try { const l = localStorage.getItem(langKey()); return LANGS.includes(l) ? l : null; } catch (e) { return null; } };
+let fbMod = null;   // the 💬 composer (W-FB, ./feedback.js) once mounted: its button is relabelled on a switch
+// the strings of a language (fetched once), the number format, <html lang> (the composer and the CSS read it)
+async function setLang(l, keep = true) {
+  l = LANGS.includes(l) ? l : "ka";
+  if (!STRS[l]) { try { STRS[l] = await (await fetch("i18n/" + l + ".json" + Q)).json(); } catch (e) { if (l !== "ka") return setLang("ka", keep); STRS[l] = {}; } }
+  LANG = l; setStrings(STRS[l]); setLocale(l); document.documentElement.lang = l;
+  if (keep) { try { localStorage.setItem(langKey(), l); } catch (e) {} }
+  $("#tch-l").setAttribute("aria-label", t("app.tabs_prev")); $("#tch-r").setAttribute("aria-label", t("app.tabs_next"));
+  if (fbMod && fbMod.relabel) try { fbMod.relabel(); } catch (e) {}
+  if (liveState) drawLive(liveState);   // the live mark's label in the new words
+}
+function drawLang() {
+  const el = $("#lang"); if (!el) return;
+  el.hidden = false; el.setAttribute("aria-label", t("app.lang"));
+  el.innerHTML = LANGS.map((l) => `<button class="${l === LANG ? "on" : ""}" data-lang="${l}" lang="${l}" aria-pressed="${l === LANG}" title="${esc(t("app.lang_" + l))}">${LANG_LABEL[l]}</button>`).join("");
+}
 const $ = (s) => document.querySelector(s);
 
 // scope = which company the person looks at: nursery | main | both (the bot's switch; ?co= in the link)
@@ -60,15 +87,27 @@ function theme() {
 function drawHead() {
   const one = me.companies[me.scope];
   // the legal name, as on the cards (C: no screen prints „ქესალო" as a company - Telegram's header already does)
-  const brand = one ? one.name : t("app.two_companies");
-  $("#brand").textContent = mt(brand); document.title = one ? one.brand : brand;
+  const brand = one ? one.name : t("app.two_companies"), latin = one && LANG !== "ka" ? tOr("app.latin." + me.scope, "") : "";
+  $("#brand").innerHTML = esc(mt(brand)) + (latin ? `<small class="brand-x">${esc(latin)}</small>` : ""); document.title = one ? (LANG === "ka" ? one.brand : t("app.brand_plain")) : brand;
   $("#logo").innerHTML = symOf(me.scope);
-  $("#who").textContent = me.name + " · " + (me.role_ka || tOr("role." + me.role, me.role));
-  $("#test").hidden = !me.test; $("#test").textContent = me.test || "";
+  $("#who").textContent = nameOf(me) + " · " + roleOf(me);
+  $("#test").hidden = !me.test; $("#test").textContent = me.test ? testLine(me) : "";
   const seg = me.scopes || [];
   $("#seg").hidden = seg.length < 2;
-  $("#seg").innerHTML = seg.length < 2 ? "" : seg.map((s) => `<button class="${s === me.scope ? "on" : ""}" data-co="${s}" aria-pressed="${s === me.scope}">${s === "both" ? "" : SYM[s]}${esc(mt(s === "both" ? t("app.both") : me.companies[s].short))}</button>`).join("");
+  $("#seg").innerHTML = seg.length < 2 ? "" : seg.map((s) => `<button class="${s === me.scope ? "on" : ""}" data-co="${s}" aria-pressed="${s === me.scope}">${s === "both" ? "" : SYM[s]}${esc(mt(s === "both" ? t("app.both") : tOr("app.co." + s, me.companies[s].short)))}</button>`).join("");
+  drawLang();
   $("#foot").textContent = (me.scope === "nursery" && seg.length < 2 ? t("app.foot_brand") : "") + t("app.foot");
+}
+
+// the person's name, level and the /as line in the language on screen (ka: the function's own Georgian, as before)
+const nameOf = (m) => (LANG !== "ka" && m.names && m.names[LANG]) || m.name;
+const levelsOf = (m) => [...new Set(Object.values(m.access || {}))];
+const roleOf = (m) => (LANG === "ka" || !levelsOf(m).length ? m.role_ka || tOr("role." + m.role, m.role) : levelsOf(m).map((l) => tOr("app.level." + l, l)).join(" / "));
+function testLine(m) {
+  if (LANG === "ka") return m.test;
+  const cs = Object.keys(m.access || {}), ls = levelsOf(m), co = (c) => tOr("app.co." + c, c);
+  const desc = ls.length === 1 ? cs.map(co).join(" + ") + " · " + tOr("app.level." + ls[0], ls[0]) : cs.map((c) => co(c) + ": " + tOr("app.level." + m.access[c], m.access[c])).join(" · ");
+  return t("app.test", { name: nameOf(m), desc });
 }
 
 // the tab bar (item 15b): the row scrolls sideways; under it a 2 px position bar (track = the light rule, the ink block
@@ -108,6 +147,11 @@ async function load(tab, co, extra, opt) {
     if (r.status === 403) return fail(t("app.err_403"));
     if (!r.ok) return fail(t("app.err_load", { e: esc(b.error || r.status) }));
     me = b.me; cur = b.tab;
+    // the language: a switch tap under /as (this screen only), else the person on screen's; strings fetched before the draw
+    if (!me.test) localLang = null;
+    const want = localLang || (LANGS.includes(me.lang) ? me.lang : LANG);
+    if (want !== LANG || !STRS[want]) await setLang(want, !me.test);
+    if (my !== seq) return;
     // the function deployed before W-A answers without companies or scope: it knows the nursery only (either may be
     // deployed first - this page must work with both)
     if (!me.companies) Object.assign(me, { companies: { nursery: { name: "შპს კავკასუს ურბან ნერსერი", short: "ნერსერი", brand: "ქესალო · ნერსერი" } }, scope: "nursery", scopes: ["nursery"] });
@@ -125,8 +169,8 @@ async function load(tab, co, extra, opt) {
     drawTabs();
     $("#view").innerHTML = !b.tab ? card(esc(me.companies[me.scope] ? me.companies[me.scope].name : ""), "", `<div class="empty">${t("app.no_tabs")}</div>`)
       : (me.scope === "both" ? `<div class="note">${t("app.both_note")}</div>` : "")
-        + secs.map((x) => (me.scope === "both" && x.company ? `<div class="co-h">${SYM[x.company] || ""} ${esc(me.companies[x.company].name)}</div>` : "")
-        + view(x.data, me, t, x.company)).join("");
+        + secs.map((x) => (me.scope === "both" && x.company ? `<div class="co-h">${SYM[x.company] || ""} ${esc(me.companies[x.company].name)}${LANG !== "ka" ? ` <small class="brand-x" style="display:inline">${esc(tOr("app.latin." + x.company, ""))}</small>` : ""}</div>` : "")
+        + view(x.data, { ...me, lang: LANG }, t, x.company)).join("");
     // ✓ on the alerts tab (wave polish1): what the function did, then the list without the closed one
     if (b.acked) $("#view").insertAdjacentHTML("afterbegin", b.acked.ok
       ? `<div class="banner ok">${t("app.acked_ok", { title: esc(b.acked.title), by: esc(b.acked.by || ""), at: b.acked.at ? " · " + tm(b.acked.at) : "" })}</div>`
@@ -148,7 +192,9 @@ const setAt = (at) => {
   $("#at").textContent = t("app.updated", { at: d.toDateString() === new Date().toDateString() ? hm : tm(at) });
 };
 // the live mark beside the time: a filled square = live, a ring = checking every 30 s (shape + the words in its label)
+let liveState = null;
 function drawLive(s) {
+  liveState = s;
   const el = $("#lv"); if (!el) return;
   el.hidden = s === "off"; el.className = "lv" + (s === "live" ? "" : " poll");
   const w = tOr(s === "live" ? "app.live_on" : "app.live_poll", ""); el.title = w; if (w) el.setAttribute("aria-label", w);
@@ -176,8 +222,20 @@ document.addEventListener("click", (e) => {
   const g = e.target.closest("[data-go]"); if (g && me && me.tabs.includes(g.dataset.go)) return load(g.dataset.go);
   const r = e.target.closest("[data-det]"); if (r) { const el = document.getElementById("det" + r.dataset.det); el.classList.toggle("open"); r.classList.toggle("open-r", el.classList.contains("open")); return; }
   const ch = e.target.closest("[data-tch]"); if (ch) { const el = $("#tabs"); el.scrollBy({ left: Number(ch.dataset.tch) * Math.max(80, el.clientWidth - 88), behavior: "auto" }); return; }
+  const lg = e.target.closest("[data-lang]"); if (lg) { haptic(); return switchLang(lg.dataset.lang); }
   if (e.target.closest("[data-retry]")) return load(cur);
 });
+// ქარ · РУС · ENG: the words at once, then the person's row, then the open tab loaded again in the new words. A failed
+// write keeps the words; the next answer says what the row holds. Under /as nothing is written.
+async function switchLang(l) {
+  if (!LANGS.includes(l) || l === LANG || !me) return;
+  const test = !!me.test;
+  if (test) localLang = l;
+  await setLang(l, !test);
+  if (!test) { try { await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ initData: TG ? TG.initData : "", op: "set_lang", lang: l }) }); } catch (e) {} }
+  me.lang = l;
+  return load(cur);
+}
 
 // the tab to open: a Direct Link's startapp=<tab>[_<company>] (bot-v3 §2.1), else ?tab= (the bot's buttons), else home
 function startTab() {
@@ -197,8 +255,7 @@ async function boot() {
   if (TG) { TG.ready(); TG.expand(); if (TG.onEvent) ["themeChanged", "safeAreaChanged", "contentSafeAreaChanged"].forEach((e) => TG.onEvent(e, theme)); }
   $("#tabs").addEventListener("scroll", drawPos, { passive: true });
   window.addEventListener("resize", drawPos);
-  try { setStrings(await (await fetch("i18n/" + LANG + ".json" + Q)).json()); } catch (e) { setStrings({}); }
-  $("#tch-l").setAttribute("aria-label", t("app.tabs_prev")); $("#tch-r").setAttribute("aria-label", t("app.tabs_next"));
+  await setLang(storedLang() || hintLang() || "ka", false);
   const start = startTab(), tab = /^[a-z_]+$/.test(start) ? start : "home";
   // a Mini App opened from a reply-keyboard button gets no initData (core.telegram.org/bots/webapps: WebAppInitData „is
   // empty if the Mini App was launched from a keyboard button"): the function could not tell who it is. Then the page
@@ -209,5 +266,7 @@ async function boot() {
     return;
   }
   load(tab);
+  // the 💬 composer (W-FB, plans/_work/bot-v3-feedback.md PR-A - applied by i18n in its app.js turn)
+  import("./feedback.js" + Q).then((m) => { fbMod = m; m.mount({ api: API, tg: TG, t }); }).catch(() => {});
 }
 boot();

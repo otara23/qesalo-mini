@@ -10,7 +10,7 @@
 // the „სად არის" card keeps the bank total the bot's card shows.
 // The numbers: the nursery's bank total = Σ v_v1_cash.gel_equivalent (card N2), the main company's = v_main_cash
 // total_gel (card M1); the rows are ./functions/mini/cash.ts's.
-import { t, tOr, esc, num, gel, dt, tm, card, row, barRow, span, fxAmt, SYM, caps } from "../ui.js?v=86cc6d3.202611091626";
+import { t, tOr, esc, num, gel, dt, tm, card, row, barRow, span, fxAmt, SYM, caps } from "../ui.js?v=359f3d6.202611091658";
 
 const ymd = (s) => { const d = new Date(s); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
 const at = (asOf, fetched) => (fetched && asOf && ymd(fetched) === String(asOf).slice(0, 10) ? tm(fetched) : dt(asOf));
@@ -20,11 +20,14 @@ function where(bank, till) {
   const note = till.last_entry ? t("cash.till_note", { d: dt(till.last_entry), t: till.synced_at ? tm(till.synced_at) : "—" }) : t("cash.till_empty", { t: till.synced_at ? tm(till.synced_at) : "—" });
   return card(t("cash.where"), "", row(t("cash.banks"), "", gel(bank)) + row(t("cash.till"), note, gel(till.gel)));
 }
-// ● ლაივი: the bank read less than 3 minutes ago; the dot goes when that is no longer true (a timer, no refetch)
-const LIVE_MS = 3 * 60e3;
-const live = (fetched) => {
-  const until = fetched ? Date.parse(fetched) + LIVE_MS : 0;
-  return until > Date.now() ? ` <span class="ca-live" data-live-until="${until}">${esc(t("cash.live"))}</span>` : "";
+// ● ლაივი: the bank read less than 3 minutes ago; the dot goes when that is no longer true (a timer, no refetch). A
+// re-read that moved nothing bumps only checked_at (schema/029): the page fires qesalo:checked and the dot of that
+// company stays 3 minutes from then (W-RT's PR-RT-2) - so it no longer fades on a quiet evening; CHECKED keeps that time
+// per company, so a redraw (a tapped bank row) draws the dot again
+const LIVE_MS = 3 * 60e3, CHECKED = {};
+const live = (fetched, co) => {
+  const until = fetched ? Math.max(Date.parse(fetched), CHECKED[co] || 0) + LIVE_MS : 0;
+  return until > Date.now() ? ` <span class="ca-live" data-live-until="${until}" data-live-co="${esc(co || "")}">${esc(t("cash.live"))}</span>` : "";
 };
 const S = { open: {} };
 
@@ -32,7 +35,7 @@ function sheet(d, co) {
   const L = d.lines || [], tot = d.till ? Math.round(Number(d.total_gel || 0)) + Math.round(Number(d.till.gel || 0)) : d.total_gel;   // the rounded parts add up on screen
   const warn = [d.age > 2 ? t("cash.age", { n: d.age }) : "", (d.fx_missing || []).length ? t("cash.fx_missing", { c: d.fx_missing.join(", ") }) : ""].filter(Boolean).join(" · ");
   let s = warn ? `<div class="banner">${esc(warn)}</div>` : "";
-  s += `<div class="card hero"><div class="hero-l">${t(d.till ? "cash.total_all" : "cash.total")}</div><div class="hero-v">${gel(tot)}</div><div class="hero-s">${t("cash.main_sub", { d: at(d.as_of, d.fetched_at) })}${live(d.fetched_at)}</div></div>`;
+  s += `<div class="card hero"><div class="hero-l">${t(d.till ? "cash.total_all" : "cash.total")}</div><div class="hero-v">${gel(tot)}</div><div class="hero-s">${t("cash.main_sub", { d: at(d.as_of, d.fetched_at) })}${live(d.fetched_at, co)}</div></div>`;
   s += where(d.total_gel, d.till);
   const day = today();
   s += card(t("cash.by_bank"), "", L.map((x, i) => {
@@ -74,6 +77,10 @@ if (typeof document !== "undefined" && !window.__cashView) {
   document.addEventListener("keydown", (e) => { const el = (e.key === "Enter" || e.key === " ") && e.target.closest && e.target.closest("[data-ca]"); if (el) { e.preventDefault(); act(el); } });
   // the live dot leaves when its 3 minutes are over
   setInterval(() => { document.querySelectorAll("[data-live-until]").forEach((x) => { if (Number(x.dataset.liveUntil) <= Date.now()) x.remove(); }); }, 15e3);
+  // the bank was re-read and nothing moved (mini/app.js: detail = { company, surface, at }): that company's dot lives on
+  document.addEventListener("qesalo:checked", (e) => { const x = e.detail || {}, at = Date.parse(x.at); if (x.surface !== "cash" || !(at > 0)) return;
+    if (x.company) CHECKED[x.company] = Math.max(CHECKED[x.company] || 0, at);
+    document.querySelectorAll("[data-live-until]").forEach((el) => { if (!x.company || !el.dataset.liveCo || el.dataset.liveCo === x.company) el.dataset.liveUntil = String(Math.max(Number(el.dataset.liveUntil) || 0, at + LIVE_MS)); }); });
 }
 
 function css() {

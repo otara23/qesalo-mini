@@ -10,11 +10,13 @@
 // Design C „ნახაზი": framed sheet, two figures as the hero cells (one per side - never a difference), a sort control
 // (amount | age) as a segmented strip, rows with a scale bar (share of the largest row of that list), tap = the
 // documents sheet (the shell's .det), the title block with sources and the rule at the end. Nothing eases.
-import { t, esc, num, gel, dt, caps, cut } from "../ui.js?v=86cc6d3.202611091626";
+import { t, esc, num, gel, dt, caps, cut } from "../ui.js?v=359f3d6.202611091658";
 
 const L = (k, p) => t("debts." + k, p);
 const S = { me: null, secs: [], pass: false, sort: "amount", all: {} };
-const FIRST = 40;   // rows drawn per list before „ყველა (n)"
+// Otar 9.11 („simple"): each side opens with its 10 largest (or oldest, by the strip) rows, every row closed; „ყველა (n)"
+// adds the rest in place under them (bot-v3 polish3; was 40 - main had 137 and 182 rows a side)
+const FIRST = 10;   // rows drawn per list before „ყველა (n)"
 
 const yr = (s) => String(s || "").slice(0, 4);
 const dtY = (s) => (s ? dt(s) + " " + yr(s) : "—");
@@ -122,11 +124,17 @@ export default function view(d, me, _t, co) {
   S.me = me; S.secs.push({ company: co, data: d });
   return `<div class="db" data-dbsec="${esc(co || "")}">${section(d, co)}</div>`;
 }
-// a sort or „ყველა" redraws the sections from the data already here (no new request)
-function draw() {
+// a sort or „ყველა" redraws the sections from the data already here (no new request); „ყველა" keeps the rows that were
+// open (same order, same ids), a new order closes them (the ids follow the position)
+function draw(keep) {
+  const open = keep ? [...document.querySelectorAll(".db .det.open")].map((el) => el.id) : [];
   for (const x of S.secs) {
     const el = document.querySelector(`[data-dbsec="${x.company || ""}"]`);
     if (el) { el.innerHTML = section(x.data, x.company); caps(el); }
+  }
+  for (const id of open) {
+    const d = document.getElementById(id), r = document.querySelector(`[data-det="${id.slice(3)}"]`);
+    if (d) d.classList.add("open"); if (r) r.classList.add("open-r");
   }
 }
 if (typeof document !== "undefined" && !window.__debtsView) {
@@ -136,7 +144,7 @@ if (typeof document !== "undefined" && !window.__debtsView) {
     if (!el || !S.me) return;
     const TG = window.Telegram && window.Telegram.WebApp; if (TG && TG.HapticFeedback) TG.HapticFeedback.selectionChanged();
     if (el.dataset.dbsort) { if (S.sort !== el.dataset.dbsort) { S.sort = el.dataset.dbsort; draw(); } return; }
-    if (el.dataset.dbmore) { S.all[el.dataset.dbmore] = true; draw(); }
+    if (el.dataset.dbmore) { S.all[el.dataset.dbmore] = true; draw(true); }
   });
 }
 function css() {

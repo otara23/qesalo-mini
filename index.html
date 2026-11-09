@@ -9,7 +9,7 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Georgian:wdth,wght@62.5..100,400..800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Georgian:wdth,wght@62.5..100,400..800&family=Noto+Sans:wdth,wght@62.5..100,400..800&display=swap">
 <style>
 /* The panel in design C „ნახაზი" (wave design2, 8.11.2026; design/phase1/C-plan/DESIGN.md, the cards' lib/card-html.mjs):
    light = the survey sheet (drawing paper, carbon ink), dark = the cyanotype blueprint; Telegram's colorScheme picks the
@@ -17,7 +17,7 @@
    Noto Sans Georgian, at three widths (wdth 62.5 display figures and titles, 75 Mtavruli labels, 100 reading text);
    Mtavruli is emitted as code points (mt() below), never by text-transform. Zero radius; nothing eases (state changes
    are two-frame steps, 90 ms). Status = a shape plus a word, never colour alone; colour never sits on a number. */
-:root{--q-canvas:#E9EAE5;--q-surface:#F8F8F5;--q-surface-2:#EDEEE9;--q-rule:#141615;--q-rule-light:#C4C7BF;--q-ink:#111312;--q-ink-2:#2D312F;--q-muted:#555A56;--q-accent:#1C46A8;--q-focus:#1C46A8;--q-invert:#111312;--q-on-invert:#F8F8F5;--q-good:#1B6E2E;--q-good-bg:#DDEEDF;--q-warn:#8A5100;--q-warn-bg:#F6E7C6;--q-crit:#B8360A;--q-crit-bg:#F8DCD3;--q-info:#555A56;--q-nursery:#8C2A6E;--q-main:#5E9A2F;--q-viz-fill:#111312;--q-viz-alt:#F8F8F5;--q-safe-top:0px;--q-safe-bottom:0px;--ff:'Noto Sans Georgian',system-ui,sans-serif;--step:steps(2,jump-none)}
+:root{--q-canvas:#E9EAE5;--q-surface:#F8F8F5;--q-surface-2:#EDEEE9;--q-rule:#141615;--q-rule-light:#C4C7BF;--q-ink:#111312;--q-ink-2:#2D312F;--q-muted:#555A56;--q-accent:#1C46A8;--q-focus:#1C46A8;--q-invert:#111312;--q-on-invert:#F8F8F5;--q-good:#1B6E2E;--q-good-bg:#DDEEDF;--q-warn:#8A5100;--q-warn-bg:#F6E7C6;--q-crit:#B8360A;--q-crit-bg:#F8DCD3;--q-info:#555A56;--q-nursery:#8C2A6E;--q-main:#5E9A2F;--q-viz-fill:#111312;--q-viz-alt:#F8F8F5;--q-safe-top:0px;--q-safe-bottom:0px;--ff:'Noto Sans Georgian','Noto Sans',system-ui,sans-serif;--step:steps(2,jump-none)}
 :root[data-theme="dark"]{--q-canvas:#0B2140;--q-surface:#0F284B;--q-surface-2:#143159;--q-rule:#DCE6F5;--q-rule-light:#34557F;--q-ink:#F2F6FC;--q-ink-2:#CEDAEC;--q-muted:#A3B6D2;--q-accent:#FFD66B;--q-focus:#FFD66B;--q-invert:#F2F6FC;--q-on-invert:#0B2140;--q-good:#3FBF7F;--q-good-bg:#123B3A;--q-warn:#FFC46B;--q-warn-bg:#3A3420;--q-crit:#FF8A50;--q-crit-bg:#4A2230;--q-info:#A3B6D2;--q-nursery:#E070B8;--q-main:#D4E57A;--q-viz-fill:#F2F6FC;--q-viz-alt:#0F284B;color-scheme:dark}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--q-canvas);color:var(--q-ink)}
@@ -152,6 +152,18 @@ button{font:inherit;color:inherit}
 .co-h{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--q-surface);font:700 13px/16px var(--ff);font-stretch:75%;letter-spacing:.02em;color:var(--q-ink)}
 #view>.co-h{border-top:3px solid var(--q-rule)}
 #view>.co-h:first-child{border-top:0}
+/* W-I18N (bot-v3 §2.4): the language switch - three small boxed labels stacked in the header frame's last cell, the
+   chosen one inverted (design C's segmented control, two-frame step); ru/en labels in capitals of the Condensed face
+   where Georgian uses Mtavruli (mt() code points - never text-transform on Georgian); the legal name stays Georgian,
+   its Latin form under it once for a ru/en reader */
+.brand-l{flex:none;display:flex;flex-direction:column;border-left:1.5px solid var(--q-rule)}
+.brand-l button{flex:1 1 0;min-width:38px;min-height:0;border:0;border-radius:0;padding:0 6px;background:var(--q-surface);font:700 10px/12px var(--ff);font-stretch:75%;letter-spacing:.05em;color:var(--q-muted);cursor:pointer;transition:background-color 90ms var(--step),color 90ms var(--step)}
+.brand-l button+button{border-top:1px solid var(--q-rule-light)}
+.brand-l button:active{background:var(--q-surface-2)}
+.brand-l button.on{background:var(--q-invert);color:var(--q-on-invert)}
+.brand-x{display:block;margin-top:2px;font:600 10.5px/13px var(--ff);font-stretch:100%;letter-spacing:.01em;color:var(--q-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand-t{overflow:hidden}
+html:not([lang="ka"]) .card-t,html:not([lang="ka"]) .hero-l,html:not([lang="ka"]) .stat-l,html:not([lang="ka"]) .tab,html:not([lang="ka"]) .seg button,html:not([lang="ka"]) .co-h{text-transform:uppercase}
 /* the header and the tab bar reach the screen's edges through the page's side padding: the same 8 px when it narrows */
 @media (max-width:340px){.app{padding-left:8px;padding-right:8px}.top{margin:0 -8px;padding-left:8px;padding-right:8px}.tabbar{margin-left:-8px;margin-right:-8px}.stat-v{font-size:24px}}
 </style>
@@ -162,18 +174,19 @@ button{font:inherit;color:inherit}
     <div class="brand">
       <div class="brand-c"><span class="logo" id="logo"></span><div class="brand-t" id="brand">ᲥᲔᲡᲐᲚᲝ</div></div>
       <div class="brand-m"><div id="who">&nbsp;</div><div><i class="lv" id="lv" hidden></i><span id="at"></span></div></div>
+      <div class="brand-l" id="lang" role="group" hidden></div>
     </div>
     <div class="test" id="test" hidden></div>
     <div class="seg" id="seg" hidden></div>
   </div>
   <div id="view"><div class="card"><div class="skel"></div><div class="skel" style="width:60%"></div><div class="skel" style="width:80%"></div></div></div>
-  <div class="foot" id="foot">ქესალო · მხოლოდ კითხვა — არაფერი იცვლება</div>
+  <div class="foot" id="foot">&nbsp;</div>
   <div class="tabbar">
     <div class="tabs" id="tabs"></div>
     <div class="tpos" id="tpos" hidden><i></i></div>
     <button class="tch l" id="tch-l" data-tch="-1" hidden>‹</button><button class="tch r" id="tch-r" data-tch="1" hidden>›</button>
   </div>
 </div>
-<script type="module" src="app.js?v=86cc6d3.202611091626"></script>
+<script type="module" src="app.js?v=359f3d6.202611091658"></script>
 </body>
 </html>
