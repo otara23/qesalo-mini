@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>ქესალო</title>
+<!-- the `mini` Edge Function (mini/app.js reads it; the doctor's Pages check looks for it in this file) -->
+<meta name="qesalo-api" content="https://owgvoonnsccujzpbprpw.supabase.co/functions/v1/mini">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -51,13 +53,23 @@ button{font:inherit;color:inherit}
 .seg button.on .sym.nursery{border-color:var(--q-on-invert)}.seg button.on .sym.nursery::after{background:var(--q-on-invert)}.seg button.on .sym.main{background:var(--q-on-invert)}
 /* the tab bar: boxed cells under a 3 px rule, held at the bottom of the screen (sticky, the last element of the page),
    Mtavruli labels, the active cell inverted; scrolls sideways when a person has more tabs than fit */
-.tabs{position:sticky;bottom:0;z-index:10;margin:auto -12px 0;display:flex;overflow-x:auto;scrollbar-width:none;touch-action:pan-x;background:var(--q-surface);border-top:3px solid var(--q-rule);padding-bottom:var(--q-safe-bottom)}
+.tabbar{position:sticky;bottom:0;z-index:10;margin:auto -12px 0;background:var(--q-surface);border-top:3px solid var(--q-rule);padding-bottom:var(--q-safe-bottom)}
+.tabs{display:flex;overflow-x:auto;scrollbar-width:none;touch-action:pan-x;background:var(--q-surface)}
 .tabs::-webkit-scrollbar{display:none}
 .tab{flex:1 0 auto;min-width:72px;min-height:52px;border:0;border-radius:0;background:var(--q-surface);padding:0 10px;display:flex;align-items:center;justify-content:center;font:700 11px/14px var(--ff);font-stretch:75%;letter-spacing:.02em;color:var(--q-ink);cursor:pointer;position:relative;white-space:nowrap;transition:background-color 90ms var(--step),color 90ms var(--step)}
 .tab+.tab{border-left:1.5px solid var(--q-rule)}
 .tab:active{background:var(--q-surface-2)}
 .tab.on{background:var(--q-invert);color:var(--q-on-invert)}
 .tab .b{position:absolute;top:3px;right:3px;min-width:16px;height:15px;padding:0 3px;background:var(--q-crit);color:var(--q-surface);font:700 10.5px/15px var(--ff);text-align:center}
+/* item 15b (bot-v3): where the row stands - a 2 px position bar under it (track = the light rule, the ink block = the
+   part on screen: the survey sheet's scale bar) and a boxed chevron cell at an edge while tabs are hidden on that side */
+.tpos{position:relative;height:2px;background:var(--q-rule-light)}
+.tpos i{position:absolute;top:0;bottom:0;left:0;background:var(--q-ink)}
+.tch{position:absolute;top:0;z-index:1;width:44px;height:52px;border:0;border-radius:0;padding:0 0 3px;background:var(--q-surface);color:var(--q-ink);font:700 22px/1 var(--ff);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background-color 90ms var(--step)}
+.tch:active{background:var(--q-surface-2)}
+.tch.l{left:0;border-right:1.5px solid var(--q-rule)}
+.tch.r{right:0;border-left:1.5px solid var(--q-rule)}
+.tpos[hidden],.tch[hidden]{display:none}
 /* the sheet: every block of a tab is a cell of one framed sheet, split by ink lines */
 #view{margin-top:8px;border:3px solid var(--q-rule);background:var(--q-surface)}
 #view>*+*{border-top:1.5px solid var(--q-rule)}
@@ -135,7 +147,8 @@ button{font:inherit;color:inherit}
 .co-h{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--q-surface);font:700 13px/16px var(--ff);font-stretch:75%;letter-spacing:.02em;color:var(--q-ink)}
 #view>.co-h{border-top:3px solid var(--q-rule)}
 #view>.co-h:first-child{border-top:0}
-@media (max-width:340px){.app{padding-left:8px;padding-right:8px}.stat-v{font-size:24px}}
+/* the header and the tab bar reach the screen's edges through the page's side padding: the same 8 px when it narrows */
+@media (max-width:340px){.app{padding-left:8px;padding-right:8px}.top{margin:0 -8px;padding-left:8px;padding-right:8px}.tabbar{margin-left:-8px;margin-right:-8px}.stat-v{font-size:24px}}
 </style>
 </head>
 <body>
@@ -150,389 +163,12 @@ button{font:inherit;color:inherit}
   </div>
   <div id="view"><div class="card"><div class="skel"></div><div class="skel" style="width:60%"></div><div class="skel" style="width:80%"></div></div></div>
   <div class="foot" id="foot">ქესალო · მხოლოდ კითხვა — არაფერი იცვლება</div>
-  <div class="tabs" id="tabs"></div>
+  <div class="tabbar">
+    <div class="tabs" id="tabs"></div>
+    <div class="tpos" id="tpos" hidden><i></i></div>
+    <button class="tch l" id="tch-l" data-tch="-1" hidden>‹</button><button class="tch r" id="tch-r" data-tch="1" hidden>›</button>
+  </div>
 </div>
-<script>
-const API = "https://owgvoonnsccujzpbprpw.supabase.co/functions/v1/mini";
-const TG = window.Telegram && window.Telegram.WebApp;
-const LABEL = { home: "მთავარი", cash: "ფული", funds: "ინვესტიცია", tax: "გადასახადები", wc: "საბრუნავი", books: "ბუღალტერია", recon: "მომწოდებლები", alerts: "შეტყობინებები", trust: "წყაროები",
-  sales: "გაყიდვები", purchases: "შესყიდვები", vat: "დღგ", imports: "იმპორტი", tenders: "ტენდერები",
-  order_book: "ხელშეკრულებები", radar: "რადარი", deadlines: "ვადები", watch: "დასადასტურებელი" };
-const ROLE = { admin: "ადმინისტრატორი", family: "ოჯახი", investor: "ინვესტორი", accountant: "ბუღალტერი" };
-// copy of FEED_LABEL in lib/feeds.mjs (the bot's cards and digest use that one) - change both together
-const FEED_LABEL = {
-  oris: "ORIS (ნერსერი)", oris_main: "ORIS (მწვანე სახლი)", rsge: "rs.ge (ნერსერი)", rsge_main: "rs.ge (მწვანე სახლი)",
-  bank_bog: "BOG ბანკი (ნერსერი)", bank_bog_main: "BOG ბანკი (მწვანე სახლი)", bank_procredit_main: "ProCredit ბანკი (მწვანე სახლი)", bank_tbc_main: "TBC ბანკი (მწვანე სახლი)",
-  mail: "ფოსტა", fx: "ეროვნული ბანკის კურსი", weather: "ამინდი", controls: "კონტროლები", alerts: "სიგნალები (A1-A18)", bot: "ბოტი", zaza: "ზაზას სია",
-  tender_radar: "ტენდერების რადარი (procurement.gov.ge)", calendar: "ვადების კალენდარი (ცოდნის ბაზა)",
-};
-const $ = (s) => document.querySelector(s);
-const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const num = (v, d = 0) => v == null || v === "" ? "—" : Number(v).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
-const gel = (v, d = 0) => v == null ? "—" : num(v, d) + " ₾";   // no-break space: „₾" never wraps onto a line alone
-const MON = ["იან", "თებ", "მარ", "აპრ", "მაი", "ივნ", "ივლ", "აგვ", "სექ", "ოქტ", "ნოე", "დეკ"];
-const dt = (s) => { if (!s) return "—"; const d = new Date(String(s).length <= 10 ? s + "T00:00:00" : s); return d.getDate() + " " + MON[d.getMonth()]; };
-const tm = (s) => { const d = new Date(s); return dt(s) + " " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); };
-const daysAgo = (s) => s ? Math.floor((Date.now() - new Date(s + (String(s).length <= 10 ? "T00:00:00" : "")).getTime()) / 864e5) : null;
-const card = (title, n, body) => `<div class="card"><div class="card-h"><div class="card-t">${title}</div>${n ? `<div class="card-n">${n}</div>` : ""}</div>${body}</div>`;
-const row = (t, c, v, extra = "") => `<div class="row ${extra}"><div class="row-m"><div class="row-t">${t}</div>${c ? `<div class="row-c">${c}</div>` : ""}</div>${v != null ? `<div class="row-v">${v}</div>` : ""}</div>`;
-const stat = (l, v, s) => `<div class="stat"><div class="stat-l">${l}</div><div class="stat-v">${v}</div>${s ? `<div class="stat-s">${s}</div>` : ""}</div>`;
-// status: a shape (.dot) plus a word; alerts.level is urgent | warn | info (crit/error from older rows)
-const lvl = (l) => l === "urgent" || l === "crit" || l === "error" ? "bad" : l === "warn" ? "warn" : l === "info" ? "info" : "ok";
-const LEVEL_KA = { bad: "სასწრაფო", warn: "ყურადღება", info: "ინფორმაცია", ok: "რიგზეა" };
-// Mtavruli as code points (Mkhedruli U+10D0-10FA, 10FD-10FF -> +0x0BC0) for titles, labels, tabs and the switch; text
-// nodes only (caps), so markup and entities stay intact
-const mt = (s) => String(s).replace(/[ა-ჺჽ-ჿ]/g, (c) => String.fromCodePoint(c.codePointAt(0) + 0x0BC0));
-function caps(root) {
-  root.querySelectorAll(".card-t,.hero-l,.stat-l").forEach((el) => { const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let n; while ((n = w.nextNode())) n.nodeValue = mt(n.nodeValue); });
-}
-
-// scope = which company the person looks at: nursery | main | both (the bot's switch; ?co= in the link)
-let me = null, cur = "home", badge = 0, scope = new URLSearchParams(location.search).get("co") || null;
-// plan symbols (circle with a centre point = the nursery's trees, square = the main company's plot); the glyph inside
-// is what a text reader gets, the drawing is CSS
-const SYM = { nursery: `<span class="sym nursery"><i>◉</i></span>`, main: `<span class="sym main"><i>■</i></span>` };
-const symOf = (s) => (s === "both" ? SYM.nursery + SYM.main : SYM[s] || "");
-
-// our light (survey sheet) or dark (cyanotype) token set from Telegram's colorScheme; Telegram's chrome gets the
-// canvas colour; the safe areas go into --q-safe-top / --q-safe-bottom
-function theme() {
-  const dark = TG && TG.colorScheme ? TG.colorScheme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
-  const root = document.documentElement;
-  root.dataset.theme = dark ? "dark" : "light";
-  const s = (TG && TG.safeAreaInset) || {}, c = (TG && TG.contentSafeAreaInset) || {};
-  root.style.setProperty("--q-safe-top", ((s.top || 0) + (c.top || 0)) + "px");
-  root.style.setProperty("--q-safe-bottom", ((s.bottom || 0) + (c.bottom || 0)) + "px");
-  const canvas = getComputedStyle(root).getPropertyValue("--q-canvas").trim();
-  if (TG) { try { if (TG.setHeaderColor) TG.setHeaderColor(canvas); if (TG.setBackgroundColor) TG.setBackgroundColor(canvas); if (TG.setBottomBarColor) TG.setBottomBarColor(canvas); } catch (e) {} }
-}
-
-function drawHead() {
-  const one = me.companies[me.scope];
-  // the legal name, as on the cards (C: no screen prints „ქესალო" as a company - Telegram's header already does)
-  const brand = one ? one.name : "ორი კომპანია";
-  $("#brand").textContent = mt(brand); document.title = one ? one.brand : brand;
-  $("#logo").innerHTML = symOf(me.scope);
-  $("#who").textContent = me.name + " · " + (me.role_ka || ROLE[me.role] || me.role);
-  $("#test").hidden = !me.test; $("#test").textContent = me.test || "";
-  const seg = me.scopes || [];
-  $("#seg").hidden = seg.length < 2;
-  $("#seg").innerHTML = seg.length < 2 ? "" : seg.map((s) => `<button class="${s === me.scope ? "on" : ""}" data-co="${s}" aria-pressed="${s === me.scope}">${s === "both" ? "" : SYM[s]}${esc(mt(s === "both" ? "ორივე" : me.companies[s].short))}</button>`).join("");
-  $("#foot").textContent = (me.scope === "nursery" && seg.length < 2 ? "ქესალო · " : "") + "მხოლოდ კითხვა — არაფერი იცვლება";
-}
-function drawTabs() {
-  $("#tabs").innerHTML = me.tabs.map((t) => `<button class="tab${t === cur ? " on" : ""}" data-t="${t}">${mt(LABEL[t])}${t === "alerts" && badge ? ` <span class="b">${badge}</span>` : ""}</button>`).join("");
-  const on = $("#tabs .on"); if (on) on.scrollIntoView({ inline: "center", block: "nearest" });
-}
-
-async function load(t, co, extra) {
-  cur = t; if (co) scope = co; if (me) drawTabs();
-  $("#view").innerHTML = `<div class="card"><div class="skel"></div><div class="skel" style="width:60%"></div><div class="skel" style="width:80%"></div></div>`;
-  try {
-    const r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ initData: TG ? TG.initData : "", tab: t, company: scope, ...(extra || {}) }) });
-    const b = await r.json();
-    if (r.status === 401) return fail("ეს გვერდი მხოლოდ ტელეგრამის ბოტიდან იხსნება.");
-    if (r.status === 403) return fail("თქვენ ჯერ არ გაქვთ წვდომა. ოთარს ვაცნობეთ — დაელოდეთ.");
-    if (!r.ok) return fail("ვერ ჩაიტვირთა: " + esc(b.error || r.status));
-    me = b.me; cur = b.tab;
-    // the function deployed before W-A answers without companies or scope: it knows the nursery only (either may be
-    // deployed first - this page must work with both)
-    if (!me.companies) Object.assign(me, { companies: { nursery: { name: "შპს კავკასუს ურბან ნერსერი", short: "ნერსერი", brand: "ქესალო · ნერსერი" } }, scope: "nursery", scopes: ["nursery"] });
-    scope = me.scope || scope;
-    if (b.tab === "home") badge = Number(b.data.home && b.data.home.open_alerts) || 0;
-    drawHead();
-    $("#at").textContent = "განახლდა " + tm(b.at);
-    drawTabs();
-    // „ორივე": every section carries its company's name (also when only one company has this tab), never a total, and
-    // the sheet says so; a company with no tab here yet says so. The main company's tabs draw with VIEW_MAIN, the
-    // nursery's with VIEW.
-    const secs = b.sections || [{ company: null, data: b.data }];
-    $("#view").innerHTML = !b.tab ? card(esc(me.companies[me.scope] ? me.companies[me.scope].name : ""), "", `<div class="empty">ამ კომპანიის ჩანართები პანელში მზადდება — ბოტის ბარათები უკვე არის.</div>`)
-      : (me.scope === "both" ? `<div class="note">ორი ცალკე კომპანია, ორი ცალკე ანგარიში. ჯამი არ ითვლება.</div>` : "")
-        + secs.map((x) => (me.scope === "both" && x.company ? `<div class="co-h">${SYM[x.company] || ""} ${esc(me.companies[x.company].name)}</div>` : "")
-        + ((x.company === "main" && VIEW_MAIN[b.tab]) || VIEW[b.tab] || (() => ""))(x.data, me.role)).join("");
-    // ✓ on the alerts tab (wave polish1): what the function did, then the list without the closed one
-    if (b.acked) $("#view").insertAdjacentHTML("afterbegin", b.acked.ok
-      ? `<div class="banner ok">დაიხურა: ${esc(b.acked.title)} — ${esc(b.acked.by || "")}${b.acked.at ? " · " + tm(b.acked.at) : ""}</div>`
-      : `<div class="banner">ვერ დაიხურა — ეს სიგნალი თქვენთან არ მოდის ან აღარ ჩანს.</div>`);
-    if (secs.some((x) => ((x.data && x.data.alerts) || []).some((a) => a.ack))) $("#foot").textContent = "✓ ხურავს სიგნალს ყველასთვის · სხვა არაფერი იცვლება";
-    caps($("#view"));
-    window.scrollTo(0, 0);
-  } catch (e) { fail("ინტერნეტი? ვერ დავუკავშირდი სერვერს."); }
-}
-function fail(msg) { $("#view").innerHTML = `<div class="card"><div class="empty">${msg}<br><br><button class="tab" onclick="load(cur)">თავიდან ცდა</button></div></div>`; }
-
-const VIEW = {
-  home(d, role) {
-    const h = d.home || {}; const bankOld = daysAgo(h.bank_as_of);
-    let s = "";
-    if (bankOld != null && bankOld > 2) s += `<div class="banner">ბანკის მონაცემი ${bankOld} დღისაა — ფიდი შემოწმდება</div>`;
-    s += `<div class="card hero tap" data-go="cash"><div class="hero-l">ფული ბანკში (ლარში)</div><div class="hero-v">${gel(h.cash_gel)}</div><div class="hero-s">ბანკი ${dt(h.bank_as_of)} · NBG კურსით</div></div>`;
-    s += `<div class="grid2">`
-      + stat("ხარჯი წლის დასაწყისიდან", gel(h.opex_ytd), "ბუღალტერია " + dt(h.books_as_of))
-      + stat("ინვესტიცია (აქტივები)", gel(h.capex_booked_net), "დღგ-ს გარეშე")
-      + stat("დღგ — ბიუჯეტის ვალი ჩვენს მიმართ", gel(h.vat_credit), "საგადასახადო ბარათი")
-      + stat("შემოსავალი წლის დასაწყისიდან", gel(h.revenue_ytd), h.revenue_ytd ? "" : "გაყიდვები ჯერ არ დაწყებულა")
-      + `</div>`;
-    if (d.fx && d.fx.length) s += `<div class="chips">${d.fx.map((f) => `<span class="chip">${f.ccy} ${num(f.rate, 4)}</span>`).join("")}<span class="chip">NBG · ${dt(d.fx[0].rate_date)}</span></div>`;
-    if (role !== "investor" && d.alerts && d.alerts.length) s += card("ყურადსაღები", `<span class="tap" data-go="alerts">ყველა ${h.open_alerts || ""} ›</span>`, d.alerts.map((a) => row(`<span style="display:inline-flex;align-items:baseline;gap:9px"><span class="dot ${lvl(a.level)}"></span><span>${esc(a.title)}</span></span>`, "", null, "tap\" data-go=\"alerts")).join(""));
-    if (role !== "investor" && h.capex_unassigned > 0) s += `<div class="note">${gel(h.capex_unassigned)} ინვესტიცია ჯერ ბიუჯეტის ხაზზე არ არის მიბმული.</div>`;
-    return s;
-  },
-  cash(d) {
-    const c = d.cash || []; const tot = c.reduce((a, x) => a + Number(x.gel_equivalent || 0), 0);
-    let s = `<div class="card hero"><div class="hero-l">სულ ბანკში (ლარში)</div><div class="hero-v">${gel(tot)}</div><div class="hero-s">უცხოური ვალუტა — NBG-ის დღევანდელი კურსით</div></div>`;
-    s += c.map((x) => {
-      // bank vs books on the books' date (v_v1_cash.bank_books_gap = bank balance that day − books), like with like
-      const gap = x.bank_books_gap != null ? Number(x.bank_books_gap) : null;
-      return card(x.currency, x.fx_rate ? "კურსი " + num(x.fx_rate, 4) : "",
-        row("ბანკი", dt(x.bank_as_of), num(x.bank_balance, 2) + " " + x.currency + (x.fx_rate ? `<small>${gel(x.gel_equivalent)}</small>` : ""))
-        + row("ბუღალტერია", dt(x.books_as_of), num(x.books_balance, 2) + " " + x.currency)
-        + (gap != null ? row(`სხვაობა ${dt(x.books_as_of)}`, `ბანკი ${dt(x.books_as_of)}: ${num(x.bank_on_books_date, 2)} ${x.currency} · ბანკი − ბუღალტერია`, `<span class="${Math.abs(gap) < 1 ? "pos" : "neg"}">${num(gap, 2)} ${x.currency}</span>`)
-                       : `<div class="note">შედარება ვერ ხერხდება — ამ ვალუტაში ერთ-ერთ მხარეს მონაცემი არ არის.</div>`));
-    }).join("");
-    return s;
-  },
-  funds(d, role) {
-    const L = d.lines || []; const B = L.reduce((a, x) => a + Number(x.budget || 0), 0); const U = L.reduce((a, x) => a + Number(x.booked_net || 0), 0);
-    let s = `<div class="card hero"><div class="hero-l">ინვესტიციის ბიუჯეტი — ათვისებული</div><div class="hero-v">${gel(U)}</div><div class="hero-s">${gel(B)}-დან · ${B ? Math.round(U / B * 100) : 0}%</div><div class="bar"><i style="width:${B ? Math.min(100, U / B * 100) : 0}%"></i></div></div>`;
-    s += card("ხაზები", L.length + " ხაზი", L.map((x) => {
-      const p = Number(x.budget) ? Number(x.booked_net) / Number(x.budget) * 100 : 0;
-      const cap = [x.assets ? x.assets + " აქტივი" : "", x.rsge_invoices ? x.rsge_invoices + " ა/ფ" : "", x.bank_paid_to_suppliers ? "ბანკით " + gel(x.bank_paid_to_suppliers) : "", x.last_date ? "ბოლო " + dt(x.last_date) : ""].filter(Boolean).join(" · ") || "ჯერ არაფერი";
-      return `<div class="row"><div class="row-m"><div class="row-t">${esc(x.label_ka)}</div><div class="row-c">${cap}</div><div class="bar"><i class="${p > 100 ? "over" : ""}" style="width:${Math.min(100, p)}%"></i></div></div><div class="row-v">${gel(x.booked_net)}<small>${gel(x.budget)}</small></div></div>`;
-    }).join(""));
-    if (d.funding && d.funding.length) s += card("დაფინანსება", "", d.funding.map((f) => row(esc(f.label || f.source || f.kind), dt(f.date || f.last_date), gel(f.amount || f.amount_gel))).join(""));
-    return s;
-  },
-  tax(d) {
-    const t = d.tax || {}; const v = d.vat || [];
-    let s = `<div class="card hero"><div class="hero-l">ბიუჯეტის ვალი ჩვენს მიმართ (ზედმეტობა)</div><div class="hero-v">${gel(t.card_balance, 2)}</div><div class="hero-s">rs.ge ბარათი ${dt(t.card_as_of)} (პორტალიდან)</div></div>`;
-    const diff = Number(t.card_balance) - Number(t.books_tax_account);
-    s += card("ბარათი vs ბუღალტერია", "", row("rs.ge საგადასახადო ბარათი", dt(t.card_as_of), gel(t.card_balance, 2))
-      + row("ბუღალტერია (ORIS)", "", gel(t.books_tax_account, 2))
-      + row("სხვაობა", "", `<span class="${Math.abs(diff) < 5 ? "pos" : "neg"}">${num(diff, 2)} ₾</span>`)
-      + row("ჩათვლის დღგ (rs.ge ა/ფ)", "", gel(t.input_vat_rsge, 2)));
-    if (v.length) {
-      const mx = Math.max(...v.map((x) => Number(x.vat)));
-      s += card("ჩათვლის დღგ თვეების მიხედვით", "ა/ფ", `<div class="vbars">${v.map((x) => `<div class="vb"><b>${num(x.vat)}</b><i style="height:${Math.max(4, Number(x.vat) / mx * 80)}px"></i><span>${MON[new Date(x.month).getMonth()]}</span></div>`).join("")}</div>`);
-    }
-    s += `<div class="note">საკუთარი მოყვანილი სასოფლო-სამეურნეო პროდუქცია დღგ-სგან გათავისუფლებულია ჩათვლის უფლებით (საგ. კოდ. 172(უ)) — ზედმეტობა დაბრუნებადია.</div>`;
-    return s;
-  },
-  wc(d) {
-    const w = d.wc || {};
-    return card("საბრუნავი კაპიტალი", "ბუღალტერია " + dt(w.books_as_of),
-      row("ნერგები (მარაგი)", "", gel(w.stock_saplings))
-      + row("დაუმთავრებელი წარმოება", "", gel(w.work_in_progress))
-      + row("სხვა მარაგი", "", gel(w.stock_other))
-      + row("მოთხოვნები და ავანსები", "", gel(w.receivables_and_advances))
-      + row("მომწოდებლების ვალი", "", `<span class="neg">−${num(w.payables_third_party)} ₾</span>`)
-      + row("დღგ ზედმეტობა (ბარათი)", "", gel(w.vat_credit_card)));
-  },
-  books(d) {
-    // Otar 8.11.2026 „don't need a change log at all": only new lines (d.added from the `mini` function), no edits/deletions
-    const l = d.lag || {};
-    let s = `<div class="grid2">${stat("ბოლო გატარების თარიღი", dt(l.last_entry_date), l.days_since_entry != null ? l.days_since_entry + " დღის წინ" : "")}${stat("ბოლოს შეყვანილი", dt(l.last_entered_on), "ORIS")}</div>`;
-    s += card("ახალი გატარებები 30 დღეში", "", row("დამატებული", "", num(d.added)));
-    s += card("ბოლო გატარებები", (d.recent || []).length, (d.recent || []).map((r) => row(`<span class="mono">${esc(r.debit)} → ${esc(r.credit)}</span>`, dt(r.entry_date) + (r.doc ? " · " + esc(r.doc) : ""), gel(r.amount_gel, 2))).join(""));
-    return s;
-  },
-  recon(d) {
-    const rank = (x) => !Number(x.rsge_invoiced) ? 1 : Math.abs(x.gap_invoiced_vs_booked) >= 1 ? 0 : 2;
-    const R = (d.recon || []).slice().sort((a, b) => rank(a) - rank(b) || Math.abs(b.gap_invoiced_vs_booked) - Math.abs(a.gap_invoiced_vs_booked) || Number(b.oris_booked) - Number(a.oris_booked));
-    const off = R.filter((x) => Math.abs(x.gap_invoiced_vs_booked) >= 1 && Number(x.rsge_invoiced) > 0);
-    let s = `<div class="grid2">${stat("მომწოდებელი", R.length, "rs.ge ან ბუღალტერია")}${stat("სხვაობით (ა/ფ-იანი)", off.length, "დააჭირე დეტალებს")}</div>`;
-    s += card("rs.ge vs ბუღალტერია", "", R.map((x, i) => {
-      const g = Number(x.gap_invoiced_vs_booked); const noInv = !Number(x.rsge_invoiced);
-      const pill = noInv ? `<span class="pill p-grey">ა/ფ არ არის</span>` : Math.abs(g) < 1 ? `<span class="pill p-ok">ემთხვევა</span>` : `<span class="pill p-bad">${g > 0 ? "+" : ""}${num(g)} ₾</span>`;
-      return `<div class="row tap" data-det="${i}"><div class="row-m"><div class="row-t">${esc(x.supplier)}</div><div class="row-c">ORIS ${gel(x.oris_booked)} · rs.ge ${gel(x.rsge_invoiced)}</div></div>${pill}<span class="chev">›</span></div>`
-        + `<div class="det" id="det${i}"><div><span>rs.ge ა/ფ</span><b>${gel(x.rsge_invoiced, 2)} (${x.invoices})</b></div><div><span>rs.ge ზედნადები</span><b>${gel(x.rsge_waybills, 2)} (${x.waybills})</b></div><div><span>ORIS დაბეგრილი</span><b>${gel(x.oris_booked, 2)}</b></div><div><span>ORIS გადახდილი</span><b>${gel(x.oris_paid, 2)}</b></div><div><span>ბანკით გადახდილი</span><b>${gel(x.bank_paid, 2)}</b></div><div><span>ს/კ</span><b>${esc(x.tin)}</b></div></div>`;
-    }).join(""));
-    s += `<div class="note">„ა/ფ არ არის" — ფიზიკური პირი ან მომსახურება, rs.ge-ზე ფაქტურა არ იწერება. „+" — rs.ge-ზე მეტია, ვიდრე ბუღალტერიაში.</div>`;
-    return s;
-  },
-  alerts(d) {
-    const A = d.alerts || [];
-    if (!A.length) return card("შეტყობინებები", "", `<div class="empty"><span class="dot ok"></span> ღია შეტყობინება არ არის</div>`);
-    // a.ack (wave polish1): the person may close it - a ✓ cell, as the bot's ✓ under the card
-    return card("ღია შეტყობინებები", A.length, A.map((a) => `<div class="row"><span class="dot ${lvl(a.level)}"></span><div class="row-m"><div class="row-t">${esc(a.title)}</div>${a.body ? `<div class="row-c">${esc(a.body)}</div>` : ""}<div class="row-c"><span class="w ${lvl(a.level)}">${LEVEL_KA[lvl(a.level)]}</span> · ${tm(a.created_at)}</div></div>${a.ack ? `<button class="ack" data-ack="${a.id}" aria-label="დადასტურება: ${esc(a.title)}"><span class="dot ok"></span></button>` : ""}</div>`).join(""));
-  },
-  // wave polish1 - the bot's „ვადები" (featA) and „rs.ge დასადასტურებელი" (featC) cards, whole lists; both companies
-  deadlines: deadlinesView,
-  watch: watchView,
-  trust(d) {
-    const F = d.feeds || [];
-    const ERR = { "waiting for credentials": "ელოდება ბანკის წვდომის გასაღებს" };
-    const ok = F.filter((f) => !f.stale).length;
-    return `<div class="grid2">${stat("მუშაობს", ok + " / " + F.length, "")}${stat("ყურადღება", F.length - ok, "")}</div>`
-      + card("მონაცემთა წყაროები", "", F.map((f) => row(`<span style="display:inline-flex;align-items:center;gap:8px"><span class="dot ${f.stale ? (f.last_ok ? "warn" : "bad") : "ok"}"></span>${esc(FEED_LABEL[f.feed] || f.feed)}</span>`,
-        f.last_error ? esc(ERR[f.last_error] || f.last_error) : "", f.last_ok ? tm(f.last_ok) : "—")).join(""));
-  },
-};
-
-// შპს მწვანე სახლი: the bot's cards M1-M6 and M8 (lib/cards-main.mjs) as tabs. The `mini` function did the card's
-// arithmetic; this only draws it, with the nursery tabs' parts (hero, stat, card, row, bar, note).
-const BANK_KA = { BOG: "საქართველოს ბანკი", TBC: "თიბისი ბანკი", ProCredit: "პროკრედიტ ბანკი" };
-const BANK_IN = { BOG: "საქართველოს ბანკშია", TBC: "თიბისი ბანკშია", ProCredit: "პროკრედიტ ბანკშია" };
-const MONTH_KA = ["იანვარი", "თებერვალი", "მარტი", "აპრილი", "მაისი", "ივნისი", "ივლისი", "აგვისტო", "სექტემბერი", "ოქტომბერი", "ნოემბერი", "დეკემბერი"];
-const monthKa = (s) => MONTH_KA[Number(String(s).slice(5, 7)) - 1] || "";
-const fxAmt = (v, c) => (Math.abs(Number(v)) < 100 ? num(v, 2) : num(v)) + " " + c;   // cents only under 100, as on the card
-const cut = (s, n) => { s = String(s == null ? "" : s).replace(/\s+/g, " ").trim(); return s.length > n ? s.slice(0, n - 1) + "…" : s; };
-const span = (a, b) => (a === b ? dt(a) : dt(a) + "–" + dt(b));
-const barRow = (t, c, v, w) => `<div class="row"><div class="row-m"><div class="row-t">${t}</div>${c ? `<div class="row-c">${c}</div>` : ""}<div class="bar"><i style="width:${Math.max(0, Math.min(100, Number(w) || 0))}%"></i></div></div><div class="row-v">${v}</div></div>`;
-const TENDER = { won: ["მოგებული", "p-ok"], lost: ["წაგებული", "p-bad"], in_progress: ["მიმდინარე", "p-warn"], failed: ["ჩაშლილი", "p-grey"] };
-const REG = { full: "სრული დეკლარაცია", form4: "ფორმა 4 (მცირე ღირებულების)", autos: "ავტომობილი" };
-function rsgeView(d) {
-  const sale = d.side === "sale", who = sale ? "მყიდველი" : "მომწოდებელი";
-  let s = `<div class="card hero"><div class="hero-l">${sale ? "გაყიდვები" : "შესყიდვები"} ${esc(d.year)} — წლის დასაწყისიდან</div><div class="hero-v">${gel(d.gross_ytd)}</div><div class="hero-s">დღგ-ს ჩათვლით · ${num(d.invoices_ytd)} ფაქტურა · ${num(d.counterparties_ytd)} ${who}</div></div>`;
-  s += `<div class="grid2">${stat(monthKa(d.month) + " (ამ თვეში)", gel(d.gross_month), num(d.invoices_month) + " ფაქტურა")}${stat("ზედნადები " + esc(d.year), num(d.waybills_ytd), "ამ თვეში " + num(d.waybills_month))}</div>`;
-  s += card(sale ? "ყველაზე დიდი მყიდველები" : "ყველაზე დიდი მომწოდებლები", d.top_pct != null ? `ხუთი — ${d.top_pct}%` : "",
-    (d.top || []).map((x) => barRow(esc(x.name), `${num(x.invoices)} ფაქტურა${x.person ? " · ფიზიკური პირი" : ""}`, gel(x.gross), x.share)).join(""));
-  s += card("წლის ჯამი", "", row("დღგ-ს გარეშე", "", gel(d.net_ytd)) + row("დღგ", "", gel(d.vat_ytd))
-    + (Number(d.dropped_ytd) ? row("გაუქმებული ფაქტურები", `${num(d.dropped_ytd)} ფაქტურა · ჯამში არ შედის`, `<span class="mut">${gel(d.dropped_gross_ytd)}</span>`) : ""));
-  return s + `<div class="note">rs.ge: ბოლო ფაქტურა ${dt(d.last_invoice_date)} · ბოლო ზედნადები ${dt(d.last_waybill_date)}</div>`;
-}
-// ---- wave polish1: the featA/B/C cards as tabs. The `mini` function did each card's arithmetic (the same reads and
-// rules as the bot); a card cut its list to fit a phone photo, the tab shows it whole. Dates of another year than
-// today's carry the year.
-const dy = (s, today) => (!s ? "—" : dt(s) + (today && String(s).slice(0, 4) !== String(today).slice(0, 4) ? " " + String(s).slice(0, 4) : ""));
-// „31 იან 2028-მდე" in one piece (a line may not break at the suffix's hyphen)
-const until = (s, today, suffix) => `<span class="nw">${dy(s, today)}${suffix}</span>`;
-const daysKa = (n) => (n === 0 ? "დღეს" : n === 1 ? "ხვალ" : n + " დღეში");
-const quotes = (s) => String(s == null ? "" : s).replace(/"([^"]*)"/g, "„$1“");
-// the cards' short names: no legal-form prefix, „ქ. თბილისის" -> „თბილისის" (the order book's rule; the radar's also
-// drops „შპს", as lib/cards-radar.mjs does)
-const shortName = (s) => quotes(String(s || "").split(" / ")[0].trim()).replace(/^(სსიპ|ა\(ა\)\s?იპ|ააიპ)\s+/, "").replace(/^(ქალაქ|ქ\.)\s*თბილისის\s+/, "თბილისის ");
-const radarName = (s) => quotes(String(s || "").replace(/,,/g, "„")).replace(/^(სსიპ|ა\(ა\)\s?იპ|ააიპ|შპს)\s*[-–]?\s*/, "").replace(/^(ქალაქ|ქ\.)\s*თბილისის\s+/, "თბილისის ");
-const calTitle = (s) => quotes(s).replace(/(^|\s)(სსიპ|ა\(ა\)იპ)\s+/, "$1").replace(/(ქალაქ|ქ\.)\s*თბილისის\s+(მუნიციპალიტეტის\s+)?/, "თბილისის ");
-const detRow = (id, t, c, v, det) => `<div class="row tap" data-det="${id}"><div class="row-m"><div class="row-t">${t}</div>${c ? `<div class="row-c">${c}</div>` : ""}</div><div class="row-v">${v}</div><span class="chev">›</span></div><div class="det" id="det${id}">${det}</div>`;
-function deadlinesView(d) {
-  const main = d.company === "main", dated = d.dated || [], open = d.open || [];
-  const dueTxt = (r) => (r.precision === "year" ? r.due.slice(0, 4) : r.precision === "month" ? monthKa(r.due) + " " + r.due.slice(0, 4) : dy(r.due, d.today));
-  const in90 = (r) => r.precision !== "year" && (Date.parse(r.due) - Date.parse(d.today)) / 864e5 <= 90;
-  const line = (r) => row(esc(calTitle(r.title)), [r.kind, r.note, r.amount_gel ? gel(r.amount_gel) : "", r.ambiguous ? "წყაროში ორი თარიღია" : "", r.src].filter(Boolean).map(esc).join(" · "),
-    dueTxt(r) + (r.days != null ? `<small>${r.soon ? `<span class="pill p-warn">${daysKa(r.days)}</span>` : daysKa(r.days)}</small>` : ""));
-  let s = `<div class="grid2">` + (main ? stat("90 დღეში", num(d.in90), "30 დღეში: " + num(d.in30)) + stat("გარანტიები", num(d.guarantees), d.guarantees ? gel(d.guarantees_gel) : "")
-    : stat("ღია საკითხი", num(open.length), "") + stat("90 დღეში", num(d.in90), "30 დღეში: " + num(d.in30))) + `</div>`;
-  const near = dated.filter(in90), later = dated.filter((r) => !in90(r));
-  if (dated.length || !open.length) s += card("90 დღეში", near.length, near.length ? near.map(line).join("") : `<div class="empty">90 დღეში ვადა არ არის</div>`);
-  if (later.length) s += card("შემდეგ", later.length, later.map(line).join(""));
-  if (open.length) s += card("ღია საკითხები", open.length, open.map((r) => row(esc(quotes(r.title)), [r.note, r.src].filter(Boolean).map(esc).join(" · "), r.since ? until(r.since, d.today, "-დან") : "—")).join(""));
-  return s + `<div class="note">ცოდნის ბაზის რეესტრები · კალენდარი ${dy(d.built, d.today)}. „რეესტრის მიხედვით" — თარიღი დოკუმენტიდანაა წაკითხული.</div>`;
-}
-function watchView(d) {
-  const P = d.purchase || { rows: [] }, Sa = d.sale || { buyers: [] }, Wb = d.waybills || { rows: [] }, co = d.company === "main" ? "w" : "wn";
-  const st = (x) => (x.status_as_of ? " · სტატუსი " + dy(x.status_as_of, d.year) : "");
-  let s = `<div class="grid2">${stat("შესყიდვა", num(P.n), P.n ? "დღგ " + gel(P.vat) : "არაფერი ელოდება")}${stat("გაყიდვა > 7 დღე", num(Sa.n), Sa.n ? gel(Sa.gross) : "არაფერი ელოდება")}${Wb.n ? stat("ზედნადები", num(Wb.n), "შენახული") : ""}</div>`;
-  s += card("შესყიდვა: ჩვენ დასადასტურებელი", P.n ? "დღგ " + gel(P.vat) : "", P.n ? P.rows.map((x) => row(esc(x.name), `${dy(x.issued_at, d.year)} · ${num(x.days)} დღე${st(x)}`, `დღგ ${gel(x.vat)}<small>${gel(x.amount)}</small>`)).join("")
-    : `<div class="empty"><span class="dot ok"></span> დასადასტურებელი არ არის</div>`);
-  // the 15 largest buyers one by one (a tap opens their invoices), the rest in one row that opens to the list
-  const B = Sa.buyers || [], top = B.slice(0, 15), more = B.slice(15);
-  if (Sa.n) s += card("გაყიდვა: მყიდველს არ დაუდასტურებია", num(B.length) + " მყიდველი", top.map((b, i) => detRow(co + i, esc(b.name), `${num(b.n)} ფაქტურა · ${until(b.oldest, d.year, "-დან")}`, gel(b.gross),
-    b.invoices.map((x) => `<div><span>${dy(x.issued_at, d.year)} · ${num(x.days)} დღე${st(x)}</span><b>${gel(x.amount)}</b></div>`).join(""))).join("")
-    + (more.length ? detRow(co + "more", `+${num(more.length)} მყიდველი`, `${num(more.reduce((a, b) => a + b.n, 0))} ფაქტურა`, gel(more.reduce((a, b) => a + b.gross, 0)),
-      more.map((b) => `<div><span>${esc(b.name)} · ${num(b.n)} · ${dy(b.oldest, d.year)}-დან</span><b>${gel(b.gross)}</b></div>`).join("")) : ""));
-  if (Wb.n) s += card("ზედნადები: შენახული, არ გააქტიურებულა", Wb.n, Wb.rows.map((x) => row(esc(x.name), `${dy(x.issued_at, d.year)} · ${num(x.days)} დღე${st(x)}`, gel(x.amount))).join(""));
-  return s + `<div class="note">${P.n ? "შესყიდვის ფაქტურის დღგ ჩაითვლება მხოლოდ rs.ge-ზე დადასტურების შემდეგ. " : ""}rs.ge ${dy(d.as_of, d.year)}${d.older_as_of ? " · ძველი სტატუსები " + dy(d.older_as_of, d.year) : ""}. ბოტი rs.ge-ზე არაფერს ადასტურებს — მხოლოდ კითხულობს.</div>`;
-}
-const VIEW_MAIN = {
-  cash(d) {
-    const L = d.lines || [];
-    const warn = [d.age > 2 ? `ბანკის მონაცემი ${d.age} დღისაა` : "", (d.fx_missing || []).length ? `${d.fx_missing.join(", ")}: კურსი არ არის — ლარის ჯამში არ შედის` : ""].filter(Boolean).join(" · ");
-    let s = warn ? `<div class="banner">${esc(warn)}</div>` : "";
-    s += `<div class="card hero"><div class="hero-l">სულ ბანკში (ლარში)</div><div class="hero-v">${gel(d.total_gel)}</div><div class="hero-s">ბანკი ${dt(d.as_of)} · უცხოური ვალუტა — ეროვნული ბანკის კურსით</div></div>`;
-    s += card("ბანკი და ვალუტა", "", L.map((x) => barRow(esc((BANK_KA[x.bank] || x.bank) + " · " + x.currency),
-        `${num(x.accounts_nonzero)} ანგარიში · ${span(x.as_of, x.as_of_newest)}${x.currency !== "GEL" && x.fx_rate ? " · კურსი " + num(x.fx_rate, 4) : ""}`,
-        x.currency === "GEL" ? gel(x.balance) : fxAmt(x.balance, x.currency) + `<small>${x.gel_equivalent == null ? "—" : gel(x.gel_equivalent)}</small>`, x.share)).join("")
-      + (d.empty_accounts ? row("ნულოვანი ნაშთი", "ანგარიში-ვალუტა", `<span class="mut">${num(d.empty_accounts)}</span>`) : ""));
-    if (d.top_bank && d.top_bank.pct != null) s += `<div class="note">ფულის ${d.top_bank.pct}% ${esc(BANK_IN[d.top_bank.bank] || d.top_bank.bank)}.</div>`;
-    return s;
-  },
-  books(d) {
-    // F1 (8.11): no change log - last entry, entered on, +new lines; the year from ORIS without a profit line
-    const l = d.lag || {};
-    let s = Number(l.days_since_entry) > 10 ? `<div class="banner">ბოლოს შეყვანილია ${l.days_since_entry} დღის წინ</div>` : "";
-    s += `<div class="grid2">${stat("ბოლო გატარების თარიღი", dt(l.last_entry_date), "ORIS")}${stat("ბოლოს შეყვანილი", dt(l.last_entered_on), l.days_since_entry != null ? l.days_since_entry + " დღის წინ" : "")}</div>`;
-    s += card("ახალი გატარებები 7 დღეში", "", row("დამატებული", "", num(l.new_lines_7d)));
-    s += card(`${esc(d.year)} — ბუღალტერიით`, "ORIS",
-      row("შემოსავალი", "", `<span class="pos">${gel(d.revenue)}</span>`)
-      + row("საოპერაციო ხარჯი", `თვითღირებულება ${gel(d.opex_cost)} · მიწოდება ${gel(d.opex_delivery)} · ადმინისტრაციული ${gel(d.opex_admin)}`, gel(d.opex))
-      + (d.wip > 0 ? row("დაუმთავრებელ სამუშაოებში დაგროვდა", "ხარჯად გადავა სამუშაოს დასრულებისას, ჩვეულებრივ 31.12-ს", `<span class="pill p-warn">${gel(d.wip)}</span>`) : "")
-      + row("არასაოპერაციო, ნეტო", `შემოსავალი ${gel(d.non_op_income)} · ხარჯი ${gel(d.non_op_expense)}`, `<span class="${d.non_op < 0 ? "neg" : ""}">${gel(d.non_op)}</span>`)
-      + row("მოგების გადასახადი, ჯარიმები, განსაკუთრებული", "", gel(d.class9)));
-    if (d.wip > 0) s += `<div class="note">კიდევ ${gel(d.wip)} ხარჯი დაუმთავრებელ სამუშაოებშია — შედეგი წლის დახურვამდე არ ჩანს, ამიტომ მოგება აქ არ იწერება.</div>`;
-    return s;
-  },
-  sales: rsgeView,
-  purchases: rsgeView,
-  vat(d) {
-    const net = Number(d.net);
-    let s = `<div class="card hero"><div class="hero-l">დღგ ${esc(d.year)} — ${net > 0 ? "გადასახდელი" : "ჩასათვლელი"}</div><div class="hero-v">${gel(net)}</div><div class="hero-s">გაყიდვების დღგ − შესყიდვების დღგ, rs.ge ფაქტურებით</div></div>`;
-    s += `<div class="grid2">${stat("გაყიდვების დღგ", gel(d.output), "გაყიდვის ფაქტურები")}${stat("შესყიდვების დღგ", gel(d.input), Number(d.awaiting) ? "მ.შ. დასადასტურებელი " + gel(d.awaiting) : "შესყიდვის ფაქტურები")}</div>`;
-    s += card("თვეების მიხედვით", "გაყიდვა − შესყიდვა", (d.months || []).map((r) => row(monthKa(r.month), `გაყიდვა ${gel(r.output_vat)} · შესყიდვა ${gel(r.input_vat)}`,
-      `<span class="${Number(r.net_vat) > 0 ? "" : "pos"}">${gel(r.net_vat)}</span>`)).join(""));
-    return s + `<div class="note">ეს ფაქტურების სურათია — არა დეკლარაცია და არა საგადასახადო ბარათის ნაშთი (ბარათი ჯერ არ ჩანს). ბოლო ფაქტურა ${dt(d.last)}.</div>`;
-  },
-  imports(d) {
-    const R = d.registers || [], last = R.map((r) => r.last_reg_date).sort().pop();
-    let s = `<div class="card hero"><div class="hero-l">იმპორტი ${esc(d.year)} — საბაჟო ღირებულება</div><div class="hero-v">${gel(d.value_gel)}</div><div class="hero-s">საბაჟოს მონაცემი ${dt(d.as_of)}</div></div>`;
-    s += `<div class="grid2">${stat("დეკლარაცია", num(d.declarations), last ? "ბოლო " + dt(last) : "")}${stat("დღგ + ბაჟი", gel(d.vat_duty), "საბაჟოზე")}</div>`;
-    s += card("დეკლარაციები", "", R.length ? R.map((r) => row(esc(REG[r.register] || r.register), `${num(r.declarations)} დეკლარაცია · ბოლო ${dt(r.last_reg_date)}`, gel(r.value_gel))).join("")
-      : `<div class="empty">წელს იმპორტი არ არის</div>`);
-    return s + card("გადასახადები", "", row("იმპორტის დღგ", "", gel(d.import_vat)) + row("საბაჟო გადასახადი", "", gel(d.import_duty)) + (Number(d.excise) ? row("აქციზი", "", gel(d.excise)) : ""));
-  },
-  tenders(d) {
-    const t = d.s, src = `<div class="note">ცოდნის ბაზა ${dt(d.built)} · tendermonitor.ge ${dt(d.tm_updated)}</div>`;
-    if (!t) return card(`ტენდერები ${esc(d.year)}`, "", `<div class="empty">წელს ტენდერი არ არის</div>`) + src;
-    let s = `<div class="card hero"><div class="hero-l">ტენდერები ${esc(d.year)} — მოგებული</div><div class="hero-v">${esc(t.won)} / ${esc(t.tenders)}</div><div class="hero-s">გამარჯვება ${esc(t.win_rate_pct)}% · ხელშეკრულებები ${gel(t.contract_won)}</div></div>`;
-    s += `<div class="grid2">${stat("წაგებული", esc(t.lost), Number(t.failed) ? "ჩაშლილი " + esc(t.failed) : "")}${stat("მიმდინარე", esc(t.in_progress), "")}</div>`;
-    s += card("ბოლო ხუთი", "", (d.last || []).map((r) => { const [st, cl] = TENDER[r.status] || [r.status, "p-grey"];
-        return row(esc(cut(String(r.who).replace(/"([^"]*)"/g, "„$1“"), 80)), dt(r.announced) + " · " + esc(cut(r.subject, 70)), `${gel(r.amount)}<small><span class="pill ${cl}">${esc(st)}</span></small>`); }).join("")
-      + `<div class="note">თანხა: მოგებულზე — ხელშეკრულება, დანარჩენზე — ჩვენი ბოლო ფასი.</div>`);
-    s += card("წლის ჯამი", "", row("მოგებული ხელშეკრულებები", "", `<span class="pos">${gel(t.contract_won)}</span>`)
-      + row("მოგებული ერთადერთი მონაწილით", "", esc(t.won_sole_bidder)) + row("სხვამ მოიგო (ვმონაწილეობდით)", "", `<span class="mut">${gel(t.contract_lost_other_winner)}</span>`));
-    return s + src;
-  },
-  // wave polish1 - the order book (featB): live public contracts minus what rs.ge shows invoiced to the same procurer
-  order_book(d) {
-    const P = d.procurers || [], open = P.filter((p) => p.remaining > 0.5), done = P.filter((p) => p.remaining <= 0.5), ap = (p) => (p.approx ? "≈ " : "");
-    const src = `<div class="note">„≈" — rs.ge-ს ფაქტურაზე ხელშეკრულება არ წერია: ერთი შემსყიდველის რამდენიმე ხელშეკრულება ერთად ითვლება. tendermonitor.ge ${dy(d.tm_updated, d.today)} · rs.ge ფაქტურები ${dy(d.rsge_as_of, d.today)}</div>`;
-    if (!P.length) return card("ხელშეკრულებების ნაშთი", "", `<div class="empty">მოქმედი სახელმწიფო ხელშეკრულება არ არის</div>`) + src;
-    let s = `<div class="card hero"><div class="hero-l">დარჩა გამოსაწერი</div><div class="hero-v">${d.approx ? "≈ " : ""}${gel(d.remaining)}</div><div class="hero-s">გამოწერილია ${gel(d.invoiced)} · მოქმედი ხელშეკრულებები − rs.ge ფაქტურები</div></div>`;
-    s += `<div class="grid2">${stat("ხელშეკრულებები", gel(d.value), `${num(d.contracts)} ხელშ. · ${num(P.length)} შემსყიდველი`)}${stat(monthKa(d.today) + " (ამ თვეში)", gel(d.month), "ბოლო ფაქტურა " + dy(d.last_invoice, d.today))}</div>`;
-    s += card("შემსყიდველის მიხედვით", d.approx ? "≈ რამდენიმე ხელშ. ერთად" : "", open.map((p, i) => detRow("ob" + i, esc(shortName(p.name)),
-      `${gel(p.value)}, ${num(p.contracts)} ხელშ. · ${until(p.last_end, d.today, "-მდე")}<div class="bar"><i style="width:${Math.max(0, Math.min(100, 100 * p.remaining / (p.value || 1)))}%"></i></div>`,
-      ap(p) + gel(p.remaining), (p.live || []).map((c) => `<div><span>${esc(c.id)} · ${dy(c.start, d.today)}–${dy(c.end, d.today)}</span><b>${gel(c.value)}</b></div>`).join(""))).join(""));
-    if (done.length) s += card("სრულად გამოწერილი", done.length, done.map((p) => row(esc(shortName(p.name)), `${gel(p.value)}, ${num(p.contracts)} ხელშ. · ${until(p.last_end, d.today, "-მდე")}`, `<span class="mut">${gel(p.remaining)}</span>`)).join(""));
-    return s + src;
-  },
-  // wave polish1 - the tender radar (featA): every open tender on the radar, our history at its procurer; facts only
-  radar(d) {
-    const T = d.tenders || [], amt = (t) => (t.estimate_gel != null ? gel(t.estimate_gel) : esc(t.estimate_ccy || "—"));
-    const hist = (h) => (!h ? "აქ არ გვიმონაწილეია" : `ჩვენ აქ: ${num(h.tenders)} ტენდერი, ${num(h.won)} მოგებული${h.last_contract ? `, ბოლო ${h.last_year}: ${gel(h.last_contract)}` : ""}`);
-    let s = d.age == null ? `<div class="banner">რადარს ჯერ არ უმუშავია</div>` : d.age > 1 ? `<div class="banner">რადარი ბოლოს განახლდა ${dy(d.last_run, d.today)}</div>` : "";
-    s += `<div class="grid2">${stat("ღია ტენდერი", num(T.length), "ჩვენი შემსყიდველი: " + num(d.ours))}${stat("ახალი (24 სთ)", num(d.fresh), "")}</div>`;
-    s += card("ვადის მიხედვით", T.length, T.length ? T.map((t) => row(esc(radarName(t.procurer)), `${t.fresh ? "ახალი · " : ""}ვადა ${dy(t.bids_end, d.today)} · ${esc(cut(t.subject, 160))} · ${esc(hist(t.history))}`, `${amt(t)}<small>${esc(t.no)}</small>`)).join("")
-      : `<div class="empty">ღია ტენდერი რადარზე არ არის</div>`);
-    return s + `<div class="note">procurement.gov.ge, პორტალი ${dy(d.last_run, d.today)} · „ჩვენ აქ" — ტენდერების რეესტრიდან. მხოლოდ ფაქტები, რჩევის გარეშე.</div>`;
-  },
-  deadlines: deadlinesView,
-  watch: watchView,
-  alerts: (d) => VIEW.alerts(d),
-};
-
-document.addEventListener("click", (e) => {
-  const k = e.target.closest("[data-ack]"); if (k) { if (TG && TG.HapticFeedback) TG.HapticFeedback.selectionChanged(); return load(cur, null, { ack: Number(k.dataset.ack) }); }
-  const t = e.target.closest("[data-t]"); if (t) { if (TG && TG.HapticFeedback) TG.HapticFeedback.selectionChanged(); return load(t.dataset.t); }
-  const c = e.target.closest("[data-co]"); if (c) { if (TG && TG.HapticFeedback) TG.HapticFeedback.selectionChanged(); return load(cur, c.dataset.co); }
-  const g = e.target.closest("[data-go]"); if (g && me && me.tabs.includes(g.dataset.go)) return load(g.dataset.go);
-  const r = e.target.closest("[data-det]"); if (r) { const el = document.getElementById("det" + r.dataset.det); el.classList.toggle("open"); r.classList.toggle("open-r", el.classList.contains("open")); }
-});
-
-theme();
-if (TG) { TG.ready(); TG.expand(); if (TG.onEvent) ["themeChanged", "safeAreaChanged", "contentSafeAreaChanged"].forEach((e) => TG.onEvent(e, theme)); }
-const start = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param) || new URLSearchParams(location.search).get("tab") || "home";
-load(LABEL[start] ? start : "home");
-</script>
+<script type="module" src="app.js?v=e8f5cf1.202611091511"></script>
 </body>
 </html>

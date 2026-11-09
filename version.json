@@ -1,0 +1,30 @@
+{
+ "version": "e8f5cf1.202611091511",
+ "commit": "e8f5cf1",
+ "published": "2026-11-09T15:11:16.309Z",
+ "files": {
+  "app.js": "9b45319b4cab",
+  "i18n/ka.json": "cd7699091075",
+  "index.html": "a379e0d7c4c3",
+  "ui.js": "f31ef8526943",
+  "views/alerts.js": "ff6a8bf6803c",
+  "views/books.js": "12a4d3e569b7",
+  "views/cash.js": "06d96cda0db3",
+  "views/deadlines.js": "eb5e623958f9",
+  "views/funds.js": "6db45fb8e19a",
+  "views/home.js": "ad179a4f1e5a",
+  "views/imports.js": "e7e4576748b3",
+  "views/order_book.js": "ec94c085218a",
+  "views/pnl.js": "f2695e657d6e",
+  "views/purchases.js": "8c8f28064d9f",
+  "views/radar.js": "f198fa4f36b5",
+  "views/recon.js": "6e717786377d",
+  "views/sales.js": "45e1f9b3a9a3",
+  "views/tax.js": "75a36a36abc7",
+  "views/tenders.js": "6fb293f9b39b",
+  "views/trust.js": "e5a04a939484",
+  "views/vat.js": "a8818ea3eb22",
+  "views/watch.js": "b8f4553fe9ef",
+  "views/wc.js": "eee13e8e05e8"
+ }
+}
