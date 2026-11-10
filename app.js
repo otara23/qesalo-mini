@@ -1,6 +1,6 @@
 // The panel's shell (wave W-SURF, plans/bot-v3.md §2.1, 9.11.2026; the page of waves access, design2, polish1 split into
 // modules): Telegram's initData -> the `mini` Edge Function -> one tab of one company scope, drawn by mini/views/<tab>.js.
-// This file: the strings, the theme, the header, the company switch, the tab bar (with its position bar), loading a tab,
+// This file: the strings, the theme, the header (the company and the language only - otar-1011 §1.3), the company switch, the tab bar (with its position bar), loading a tab,
 // the clicks. It decides nothing about access - the function sends the person's tabs (lib/access-matrix.json).
 //
 // A view (one module per tab, mini/views/<tab>.js):  export default function view(data, me, t, company) -> HTML
@@ -17,8 +17,8 @@
 // open rows and the view's params() kept), polling with `since` while the socket is down, nothing while hidden, and a
 // reload that keeps the tab, company and filters when the site serves a newer version.json. A load sequence guard: an
 // answer that a newer load (a tap) has overtaken is dropped.
-import { t, tOr, setStrings, setLocale, esc, mt, caps, SYM, symOf, tm, card } from "./ui.js?v=9d4cb1c.202611092057";
-import { createLive } from "./live.js?v=9d4cb1c.202611092057";
+import { t, tOr, setStrings, setLocale, esc, mt, caps, SYM, symOf, tm, card, nameIn, levelText } from "./ui.js?v=c8fb59c.202611101158";
+import { createLive } from "./live.js?v=c8fb59c.202611101158";
 
 // the function's address is written once, in index.html (<meta name="qesalo-api">): the doctor's Pages check reads the
 // served index.html for it (lib/doctor/checks.mjs PAGES.marker)
@@ -90,8 +90,7 @@ function drawHead() {
   const brand = one ? one.name : t("app.two_companies"), latin = one && LANG !== "ka" ? tOr("app.latin." + me.scope, "") : "";
   $("#brand").innerHTML = esc(mt(brand)) + (latin ? `<small class="brand-x">${esc(latin)}</small>` : ""); document.title = one ? (LANG === "ka" ? one.brand : t("app.brand_plain")) : brand;
   $("#logo").innerHTML = symOf(me.scope);
-  $("#who").textContent = nameOf(me) + " · " + roleOf(me);
-  $("#test").hidden = !me.test; $("#test").textContent = me.test ? testLine(me) : "";
+  drawBar();
   const seg = me.scopes || [];
   $("#seg").hidden = seg.length < 2;
   $("#seg").innerHTML = seg.length < 2 ? "" : seg.map((s) => `<button class="${s === me.scope ? "on" : ""}" data-co="${s}" aria-pressed="${s === me.scope}">${s === "both" ? "" : SYM[s]}${esc(mt(s === "both" ? t("app.both") : tOr("app.co." + s, me.companies[s].short)))}</button>`).join("");
@@ -99,15 +98,25 @@ function drawHead() {
   $("#foot").textContent = (me.scope === "nursery" && seg.length < 2 ? t("app.foot_brand") : "") + t("app.foot");
 }
 
-// the person's name, level and the /as line in the language on screen (ka: the function's own Georgian, as before)
+// the /as line of a function from before me.view, in the language on screen (ka: the function's own Georgian, as before)
 const nameOf = (m) => (LANG !== "ka" && m.names && m.names[LANG]) || m.name;
 const levelsOf = (m) => [...new Set(Object.values(m.access || {}))];
-const roleOf = (m) => (LANG === "ka" || !levelsOf(m).length ? m.role_ka || tOr("role." + m.role, m.role) : levelsOf(m).map((l) => tOr("app.level." + l, l)).join(" / "));
 function testLine(m) {
   if (LANG === "ka") return m.test;
   const cs = Object.keys(m.access || {}), ls = levelsOf(m), co = (c) => tOr("app.co." + c, c);
   const desc = ls.length === 1 ? cs.map(co).join(" + ") + " · " + tOr("app.level." + ls[0], ls[0]) : cs.map((c) => co(c) + ": " + tOr("app.level." + m.access[c], m.access[c])).join(" · ");
   return t("app.test", { name: nameOf(m), desc });
+}
+
+// the view-as bar (otar-1011 W1, §1.2): under the header while the admin looks as someone - „ხედვა: {name} · {level}" and
+// „გასვლა" (= { op: view_as, id: null }, viewAs below; the chat's /as off is the same). Drawn from me.view; a function from
+// before it sends me.test only: its words, no exit cell (the chat's /as off ends it)
+function drawBar() {
+  const el = $("#va"), v = me.view;
+  el.hidden = !v && !me.test;
+  if (el.hidden) { el.innerHTML = ""; return; }
+  const words = v ? t("app.va", { name: nameIn(v.name, v.names), level: levelText(v.access, v.level_ka) }) : testLine(me);
+  el.innerHTML = `<div class="va-t">${esc(words)}</div>` + (v ? `<button class="va-x" data-va="">${esc(mt(t("app.va_exit")))}</button>` : "");
 }
 
 // the tab bar (item 15b): the row scrolls sideways; under it a 2 px position bar (track = the light rule, the ink block
@@ -186,18 +195,27 @@ async function load(tab, co, extra, opt) {
   } catch (e) { if (my === seq && !quiet) fail(t("app.err_net")); }
   finally { if (my === seq) busy = false; }
 }
-// today's time alone (the header cell is narrow and the live mark stands before it), another day's with its date
+// the time of the last answer goes only into the live mark's label (otar-1011 §1.3: no „განახლდა" on screen): today's
+// time alone, another day's with its date
+let atHM = "";
 const setAt = (at) => {
   const d = new Date(at), hm = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
-  $("#at").textContent = t("app.updated", { at: d.toDateString() === new Date().toDateString() ? hm : tm(at) });
+  atHM = d.toDateString() === new Date().toDateString() ? hm : tm(at);
+  labelLive();
 };
-// the live mark beside the time: a filled square = live, a ring = checking every 30 s (shape + the words in its label)
+// the live mark after the company's name: a filled square = live, a ring = checking every 30 s (shape + the words and the
+// time in its label: „ცოცხალი: … · 14:48")
 let liveState = null;
 function drawLive(s) {
   liveState = s;
   const el = $("#lv"); if (!el) return;
   el.hidden = s === "off"; el.className = "lv" + (s === "live" ? "" : " poll");
-  const w = tOr(s === "live" ? "app.live_on" : "app.live_poll", ""); el.title = w; if (w) el.setAttribute("aria-label", w);
+  labelLive();
+}
+function labelLive() {
+  const el = $("#lv"); if (!el || !liveState) return;
+  const w = tOr(liveState === "live" ? "app.live_on" : "app.live_poll", ""), l = w ? w + (atHM ? " · " + atHM : "") : atHM;
+  el.title = l; if (l) el.setAttribute("aria-label", l);
 }
 // the tripwire's reload: the same tab and company (sessionStorage, read by startTab), the view's filters stay in the
 // address (pnl keeps ?p=&r=), a unique query so neither the phone nor Pages' CDN answers with the old index.html
@@ -217,6 +235,7 @@ function fail(msg) { $("#view").innerHTML = `<div class="card"><div class="empty
 document.addEventListener("click", (e) => {
   const haptic = () => { if (TG && TG.HapticFeedback) TG.HapticFeedback.selectionChanged(); };
   const k = e.target.closest("[data-ack]"); if (k) { haptic(); return load(cur, null, { ack: Number(k.dataset.ack) }); }
+  const va = e.target.closest("[data-va]"); if (va) { haptic(); return viewAs(va.dataset.va || null); }
   const x = e.target.closest("[data-t]"); if (x) { haptic(); return load(x.dataset.t); }
   const c = e.target.closest("[data-co]"); if (c) { haptic(); return load(cur, c.dataset.co); }
   const g = e.target.closest("[data-go]"); if (g && me && me.tabs.includes(g.dataset.go)) return load(g.dataset.go);
@@ -235,6 +254,18 @@ async function switchLang(l) {
   if (!test) { try { await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ initData: TG ? TG.initData : "", op: "set_lang", lang: l }) }); } catch (e) {} }
   me.lang = l;
   return load(cur);
+}
+
+// სუპერადმინი (otar-1011 W1, plans/bot-v3-otar-1011.md §1.2): a person's row = { op: view_as, id } - the function writes
+// view_as on the REAL admin's bot_people row, the row the chat's /as writes - then that person's panel (tabs, scope,
+// language) from home; id null (the view-as bar's „გასვლა") = back to the admin's own panel, on the admin tab
+async function viewAs(id) {
+  try {
+    const r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ initData: TG ? TG.initData : "", op: "view_as", id: id || null }) });
+    if (!r.ok) { const b = await r.json().catch(() => ({})); return fail(r.status === 403 ? t("app.err_403") : t("app.err_load", { e: esc(b.error || r.status) })); }
+  } catch (e) { return fail(t("app.err_net")); }
+  localLang = null;
+  return load(id ? "home" : "admin");
 }
 
 // the tab to open: a Direct Link's startapp=<tab>[_<company>] (bot-v3 §2.1), else ?tab= (the bot's buttons), else home
@@ -259,7 +290,7 @@ async function boot() {
   const start = startTab(), tab = /^[a-z_]+$/.test(start) ? start : "home";
   // a Mini App opened from a reply-keyboard button gets no initData (core.telegram.org/bots/webapps: WebAppInitData „is
   // empty if the Mini App was launched from a keyboard button"): the function could not tell who it is. Then the page
-  // hands the tab back to the bot (sendData closes it; the bot answers with an inline 📊 button, which carries initData).
+  // hands the tab back to the bot (sendData closes it; the bot answers with an inline 🌿 button, which carries initData).
   if (TG && !TG.initData && TG.platform && TG.platform !== "unknown" && TG.sendData) {
     $("#view").innerHTML = `<div class="card"><div class="empty">${t("app.keyboard")}</div></div>`;
     try { TG.sendData(JSON.stringify({ open: tab, co: scope || null })); } catch (e) { fail(t("app.err_401")); }

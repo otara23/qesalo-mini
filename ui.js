@@ -44,6 +44,16 @@ export function caps(root) {
 // is what a text reader gets, the drawing is CSS
 export const SYM = { nursery: `<span class="sym nursery"><i>◉</i></span>`, main: `<span class="sym main"><i>■</i></span>` };
 export const symOf = (s) => (s === "both" ? SYM.nursery + SYM.main : SYM[s] || "");
+// a person in the language on screen (otar-1011: the admin tab's people, the view-as bar): the name as ru/en write it
+// (bot_people.name_i18n), and the levels - ka = the function's own words (level_ka), ru/en from the access map; one level
+// on both companies = „ორივე · …" / „Обе · …"
+export const nameIn = (name, names) => (LANG !== "ka" && names && names[LANG]) || name || "";
+export function levelText(access, levelKa) {
+  const cs = Object.keys(access || {}), ls = [...new Set(Object.values(access || {}))];
+  if ((LANG === "ka" && levelKa) || !cs.length) return levelKa || "";
+  const L = (l) => tOr("app.level." + l, l), C = (c) => tOr("app.co." + c, c);
+  return cs.length > 1 && ls.length === 1 ? t("app.both") + " · " + L(ls[0]) : ls.length === 1 ? cs.map(C).join(" + ") + " · " + L(ls[0]) : cs.map((c) => C(c) + ": " + L(access[c])).join(" · ");
+}
 
 // the main company's tabs and the featA/B/C tabs (waves mainmini, polish1)
 export const monthName = (s) => t("month")[Number(String(s).slice(5, 7)) - 1] || "";

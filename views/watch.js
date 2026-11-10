@@ -1,6 +1,6 @@
 // დასადასტურებელი (both companies; wave polish1 - the bot's „rs.ge დასადასტურებელი" card of featC, the whole lists):
 // purchase invoices we must confirm, sales the buyer has not confirmed (the 15 largest buyers one by one), saved waybills.
-import { t, esc, num, gel, card, row, stat, dy, until, detRow } from "../ui.js?v=9d4cb1c.202611092057";
+import { t, esc, num, gel, card, row, stat, dy, until, detRow } from "../ui.js?v=c8fb59c.202611101158";
 
 export default function view(d) {
   const P = d.purchase || { rows: [] }, Sa = d.sale || { buyers: [] }, Wb = d.waybills || { rows: [] }, co = d.company === "main" ? "w" : "wn";

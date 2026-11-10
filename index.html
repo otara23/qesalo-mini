@@ -27,16 +27,16 @@ button{font:inherit;color:inherit}
 @media (prefers-reduced-motion:reduce){*{transition-duration:0ms!important;animation:none!important}}
 .app{max-width:560px;margin:0 auto;padding:0 12px;min-height:100vh;display:flex;flex-direction:column}
 .top{position:sticky;top:0;z-index:5;background:var(--q-canvas);margin:0 -12px;padding:calc(6px + var(--q-safe-top)) 12px 8px}
-/* the header frame: company cell | who + when */
+/* the header frame: company cell (the legal name, then the live mark at the right) | the language switch. No name, no
+   role, no „განახლდა" (otar-1011 §1.3, Otar's 3): the time of the data stands where it is a fact of the data */
 .brand{display:flex;align-items:stretch;border:3px solid var(--q-rule);background:var(--q-surface)}
 .brand-c{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:8px;padding:8px 10px}
 .logo{flex:none;display:flex;gap:4px;align-items:center}
 .brand-t{font:700 12px/15px var(--ff);font-stretch:75%;letter-spacing:.06em;min-width:0}
-.brand-m{flex:none;max-width:46%;display:flex;flex-direction:column;justify-content:center;padding:6px 10px;border-left:1.5px solid var(--q-rule);font-size:12px;line-height:15px;color:var(--q-ink-2)}
-.brand-m div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-/* the live mark before the time (W-RT; first, so a long time never pushes it into the ellipsis): a filled ink square = live (a change shows by itself), a ring = checking every
-   30 s (the socket is down); the words are its label. No colour carries it, nothing blinks. */
-.lv{display:inline-block;width:7px;height:7px;margin-right:6px;vertical-align:1px;background:var(--q-ink)}
+/* the live mark (W-RT; otar-1011: alone, after the company's name, no text): a filled ink square = live (a change shows by
+   itself), a ring = checking every 30 s (the socket is down); its label (title / aria-label) = the words + the time of
+   the last answer. No colour carries it, nothing blinks. */
+.lv{flex:none;display:inline-block;width:7px;height:7px;margin-left:auto;background:var(--q-ink)}
 .lv.poll{background:transparent;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--q-muted)}
 .lv[hidden]{display:none}
 /* plan symbols: the nursery = a tree on a planting plan (circle + centre point), the main company = a plot (square).
@@ -46,9 +46,16 @@ button{font:inherit;color:inherit}
 .sym.nursery{border:2px solid var(--q-nursery);border-radius:50%}
 .sym.nursery::after{content:"";width:4px;height:4px;border-radius:50%;background:var(--q-nursery)}
 .sym.main{background:var(--q-main)}
-.test{margin-top:6px;display:flex;gap:8px;align-items:flex-start;border:3px solid var(--q-rule);background:var(--q-crit-bg);color:var(--q-crit);padding:6px 10px;font:600 12.5px/17px var(--ff)}
-.test::before{content:"";flex:none;width:8px;height:8px;margin:4px 1px 0;background:var(--q-crit);transform:rotate(45deg)}
-.seg[hidden],.test[hidden]{display:none}
+/* the view-as bar (otar-1011 W1): whose panel this is while the admin looks as someone else (the chat's /as or the
+   სუპერადმინი tab - one bot_people.view_as row); a ring (design C „info") and the words, the exit a boxed cell inverted
+   on press. It replaces the red test box. Two lines when a long level does not fit; nothing eases. */
+.va{margin-top:6px;display:flex;align-items:stretch;min-height:36px;border:1.5px solid var(--q-rule);background:var(--q-surface-2);font:600 12.5px/16px var(--ff);color:var(--q-ink)}
+.va-t{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:8px;padding:5px 10px}
+.va-t::before{content:"";flex:none;width:9px;height:9px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--q-ink)}
+.va-x{flex:none;position:relative;min-width:44px;padding:0 12px;border:0;border-left:1.5px solid var(--q-rule);border-radius:0;background:var(--q-surface);font:700 12px/15px var(--ff);font-stretch:75%;letter-spacing:.06em;color:var(--q-ink);cursor:pointer;transition:background-color 90ms var(--step),color 90ms var(--step)}
+.va-x::after{content:"";position:absolute;left:0;right:0;top:-5px;bottom:-5px}
+.va-x:active{background:var(--q-invert);color:var(--q-on-invert)}
+.seg[hidden],.va[hidden]{display:none}
 /* the company switch: boxed cells in a 3 px frame; the chosen cell is inverted in a two-frame step */
 .seg{display:flex;margin-top:6px;border:3px solid var(--q-rule);background:var(--q-surface)}
 .seg button{flex:1 1 0;min-width:0;min-height:44px;border:0;border-radius:0;background:var(--q-surface);display:flex;align-items:center;justify-content:center;gap:7px;padding:0 6px;font:700 12px/15px var(--ff);font-stretch:75%;letter-spacing:.06em;color:var(--q-ink);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:background-color 90ms var(--step),color 90ms var(--step)}
@@ -157,13 +164,13 @@ button{font:inherit;color:inherit}
    where Georgian uses Mtavruli (mt() code points - never text-transform on Georgian); the legal name stays Georgian,
    its Latin form under it once for a ru/en reader */
 .brand-l{flex:none;display:flex;flex-direction:column;border-left:1.5px solid var(--q-rule)}
-.brand-l button{flex:1 1 0;min-width:38px;min-height:0;border:0;border-radius:0;padding:0 6px;background:var(--q-surface);font:700 10px/12px var(--ff);font-stretch:75%;letter-spacing:.05em;color:var(--q-muted);cursor:pointer;transition:background-color 90ms var(--step),color 90ms var(--step)}
+.brand-l button{flex:1 1 0;min-width:38px;min-height:17px;border:0;border-radius:0;padding:0 6px;background:var(--q-surface);font:700 10px/12px var(--ff);font-stretch:75%;letter-spacing:.05em;color:var(--q-muted);cursor:pointer;transition:background-color 90ms var(--step),color 90ms var(--step)}
 .brand-l button+button{border-top:1px solid var(--q-rule-light)}
 .brand-l button:active{background:var(--q-surface-2)}
 .brand-l button.on{background:var(--q-invert);color:var(--q-on-invert)}
 .brand-x{display:block;margin-top:2px;font:600 10.5px/13px var(--ff);font-stretch:100%;letter-spacing:.01em;color:var(--q-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .brand-t{overflow:hidden}
-html:not([lang="ka"]) .card-t,html:not([lang="ka"]) .hero-l,html:not([lang="ka"]) .stat-l,html:not([lang="ka"]) .tab,html:not([lang="ka"]) .seg button,html:not([lang="ka"]) .co-h{text-transform:uppercase}
+html:not([lang="ka"]) .card-t,html:not([lang="ka"]) .hero-l,html:not([lang="ka"]) .stat-l,html:not([lang="ka"]) .tab,html:not([lang="ka"]) .seg button,html:not([lang="ka"]) .co-h,html:not([lang="ka"]) .va-x{text-transform:uppercase}
 /* the header and the tab bar reach the screen's edges through the page's side padding: the same 8 px when it narrows */
 @media (max-width:340px){.app{padding-left:8px;padding-right:8px}.top{margin:0 -8px;padding-left:8px;padding-right:8px}.tabbar{margin-left:-8px;margin-right:-8px}.stat-v{font-size:24px}}
 </style>
@@ -172,11 +179,10 @@ html:not([lang="ka"]) .card-t,html:not([lang="ka"]) .hero-l,html:not([lang="ka"]
 <div class="app">
   <div class="top">
     <div class="brand">
-      <div class="brand-c"><span class="logo" id="logo"></span><div class="brand-t" id="brand">ᲥᲔᲡᲐᲚᲝ</div></div>
-      <div class="brand-m"><div id="who">&nbsp;</div><div><i class="lv" id="lv" hidden></i><span id="at"></span></div></div>
+      <div class="brand-c"><span class="logo" id="logo"></span><div class="brand-t" id="brand">ᲥᲔᲡᲐᲚᲝ</div><i class="lv" id="lv" role="img" hidden></i></div>
       <div class="brand-l" id="lang" role="group" hidden></div>
     </div>
-    <div class="test" id="test" hidden></div>
+    <div class="va" id="va" role="status" hidden></div>
     <div class="seg" id="seg" hidden></div>
   </div>
   <div id="view"><div class="card"><div class="skel"></div><div class="skel" style="width:60%"></div><div class="skel" style="width:80%"></div></div></div>
@@ -187,6 +193,6 @@ html:not([lang="ka"]) .card-t,html:not([lang="ka"]) .hero-l,html:not([lang="ka"]
     <button class="tch l" id="tch-l" data-tch="-1" hidden>‹</button><button class="tch r" id="tch-r" data-tch="1" hidden>›</button>
   </div>
 </div>
-<script type="module" src="app.js?v=9d4cb1c.202611092057"></script>
+<script type="module" src="app.js?v=c8fb59c.202611101158"></script>
 </body>
 </html>

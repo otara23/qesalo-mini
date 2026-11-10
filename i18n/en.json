@@ -22,7 +22,8 @@
   "pnl": "Profit",
   "debts": "Debts",
   "agro": "Farm",
-  "marketing": "Marketing"
+  "marketing": "Marketing",
+  "admin": "Superadmin"
  },
  "role": {
   "admin": "Administrator",
@@ -118,7 +119,6 @@
   "foot": "Read-only — nothing is changed",
   "foot_brand": "Qesalo · ",
   "foot_ack": "✓ closes the alert for everyone · nothing else is changed",
-  "updated": "Updated {at}",
   "err_401": "This page opens only from the Telegram bot.",
   "err_403": "You don't have access yet. Otar has been notified — please wait.",
   "err_load": "Couldn't load: {e}",
@@ -138,6 +138,8 @@
   "lang_ru": "Russian",
   "lang_en": "English",
   "test": "Test: {name} · {desc}",
+  "va": "Viewing as {name} · {level}",
+  "va_exit": "Exit",
   "co": {
    "nursery": "Nursery",
    "main": "Mtsvane Sakhli"
@@ -749,6 +751,7 @@
    "wip": "Work in progress"
   }
  },
+ "admin": {"who_t":"View as","who_n":"{n} people","who_note":"Tap a person to open the panel as they see it. The bar at the top says whose view it is; “Exit” brings you back here.","you":"you","s_active":"Active","s_invited":"Invited","s_waiting":"Waiting for approval","s_not_invited":"Not invited","s_off":"Off","inv_t":"Invites","inv_active":"active since {d}","inv_link":"link made {d}","inv_waiting":"tapped Start {d} — approve in the chat","inv_none":"no link yet","inv_how":"Link: in the chat, /invite <id> — you forward the link yourself; the panel sends nothing.","doc_t":"Doctor","doc_open":"open: {n}","doc_all":"All › Sources","doc_none":"No doctor run yet","ver_t":"Version","ver_page":"Page","ver_fn":"Function","ver_matrix":"access matrix {v}","ver_users":"Active bot users"},
  "drill": {
   "loading": "Loading…",
   "err": "Couldn't load.",
