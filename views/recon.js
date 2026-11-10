@@ -1,5 +1,5 @@
 // მომწოდებლები (the nursery): rs.ge invoices vs ORIS per supplier (v_supplier_recon). W-DEBT retires it into ვალები.
-import { t, esc, num, gel, card, stat } from "../ui.js?v=3fc30c6.202611101430";
+import { t, esc, num, gel, card, stat } from "../ui.js?v=f320af5.202611101900";
 
 export default function view(d) {
   const rank = (x) => !Number(x.rsge_invoiced) ? 1 : Math.abs(x.gap_invoiced_vs_booked) >= 1 ? 0 : 2;

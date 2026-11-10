@@ -4,11 +4,12 @@
 //                writes - then the panel loads that person's tabs, scope and language; the bar under the header says whose
 //                view it is and „გასვლა" comes back here
 //   მოწვევები    each person's invite state; the invite itself stays the chat's /invite <id> (nothing is sent from here)
-//   ექიმი        the doctor's verdict, open incidents and last run (v_doctor_status); „ყველა › წყაროები" opens trust
+//   ექიმი        the doctor's verdict, open incidents and last run (v_doctor_status) + each open incident by name, its
+//                start and „told" (debug-1011 #16; trust's words); „ყველა › წყაროები" opens trust
 //   ვერსია       the page (version.json, fetched once in mount), the function (its commit + the access matrix's version)
 //                and the bot's active users
 // Data: mini/functions/mini/tabs-global.ts admin(). Status = a shape plus a word (check, ring, triangle); no colour alone.
-import { t, esc, num, dt, tm, card, row, levelText, nameIn } from "../ui.js?v=3fc30c6.202611101430";
+import { t, tOr, esc, num, dt, tm, card, row, levelText, nameIn } from "../ui.js?v=f320af5.202611101900";
 
 const W = (k, p) => t("admin." + k, p);
 const STATE = { active: ["ok", "s_active"], invited: ["info", "s_invited"], waiting: ["warn", "s_waiting"], not_invited: ["idle", "s_not_invited"], off: ["idle", "s_off"] };
@@ -35,7 +36,10 @@ export default function view(d) {
   }).join("");
   const inv = P.map((x) => row(esc(nameIn(x.name, x.names)), esc(invDetail(x)), x.state === "active" ? null : `<span class="mono">/invite ${esc(x.id)}</span>`)).join("");
   const dc = d.doctor;
-  const doc = (dc ? row(mark(VERDICT[dc.verdict] || "warn", t("trust.doctor_verdict_" + dc.verdict)), esc(W("doc_open", { n: num(dc.open) })), tm(dc.at)) : row(esc(W("doc_none")), "", null))
+  const open = (dc && dc.open_list) || [];
+  const openRows = open.map((i) => row(mark(i.level === "warn" ? "warn" : "bad", i.title),
+    esc([`#${i.id}`, tOr("trust.doctor_since", "არ მუშაობს") + " " + (i.since ? tm(i.since) : "—"), i.told ? tOr("trust.doctor_told", "ოთარს ეცნობა") : ""].filter(Boolean).join(" · ")), null)).join("");
+  const doc = (dc ? row(mark(VERDICT[dc.verdict] || "warn", t("trust.doctor_verdict_" + dc.verdict)), esc(W("doc_open", { n: num(dc.open) })), tm(dc.at)) + openRows : row(esc(W("doc_none")), "", null))
     + `<div class="row tap" data-go="trust" role="button"><div class="row-m"><div class="row-t">${esc(W("doc_all"))}</div></div><span class="chev">›</span></div>`;
   const v = d.version || {};
   const ver = row(esc(W("ver_page")), `<span id="adm-pv-c">${pageVer ? esc(pageLine(pageVer)) : ""}</span>`, `<span id="adm-pv" class="mono">${esc(pageVer ? pageVer.version : "…")}</span>`)

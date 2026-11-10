@@ -3,10 +3,10 @@
 // the rows): suppliers with what we owe, the last entry and their rs.ge invoices; advances and claims; the saplings
 // with their quantities; work in progress; other stock; the VAT row = the rs.ge card next to the books' 1 4 80 1. An
 // account opens to its months and lines (./drill-ui.js; a supplier's lines read as debt: + = owed more). The 18.06
-// purchase debt (3 1 10 26) is not in the payables by the standing ruling, and says so. The main company: after its
-// chart of accounts is checked (§3.5). A view of the books - nothing here judges an account.
-import { t, esc, num, gel, dt, card, row } from "../ui.js?v=3fc30c6.202611101430";
-import { section, accountRow, keyOf, isOpen, drillCss, amt, toggleLocal } from "./drill-ui.js?v=3fc30c6.202611101430";
+// purchase debt (3 1 10 26) is not in the payables by the standing ruling, and says so. The main company: nine rows
+// of its measured balance-sheet map (main() below, debug-1011 #4). A view of the books - nothing here judges an account.
+import { t, esc, num, gel, dt, card, row } from "../ui.js?v=f320af5.202611101900";
+import { section, accountRow, keyOf, isOpen, drillCss, amt, toggleLocal, redrawView } from "./drill-ui.js?v=f320af5.202611101900";
 
 const L = (k, p) => t("wc." + k, p);
 // the order and words of today's tab; payables read as a positive debt
@@ -48,9 +48,47 @@ function itemBody(k, it, d, can) {
   return s;
 }
 
+// ---------------- შპს მწვანე სახლი (debug-1011 #4, 10.11.2026) ----------------
+// nine rows of the measured balance-sheet map (mini/functions/mini/drill.ts wcMain): stock in three, work in progress,
+// finished works, what customers owe, advances paid, what we owe suppliers, advances received - each opens to its
+// accounts (the largest first, 40 at a time), an account to its months and lines. Related companies and the company's own
+// code are listed apart under their row and never in its total (the ვალები tab's rule); taxes, staff and partners are
+// ვალები's. Payables and advances received read as a positive debt, as the nursery's payables do.
+const MAIN_ROWS = [["goods", "n_items"], ["materials", "n_items"], ["stock_other", "n_items"], ["wip", "n_accounts"], ["finished", "n_accounts"],
+  ["receivables_main", "n_customers", "receivables"], ["adv_paid", "n_accounts"], ["payables", "n_suppliers"], ["adv_received", "n_accounts"]];
+const DEBT = new Set(["payables", "adv_received"]);
+const MORE = {};   // key -> accounts shown (40 more a tap)
+function main(d) {
+  const I = d.items || {}, can = !!(d.can && d.can.lines);
+  let s = "";
+  for (const [label, nKey, item = label] of MAIN_ROWS) {
+    const it = I[item] || { total: 0, accounts: [], related: [], open: 0 }, key = keyOf("main", "wc", "item", item), open = isOpen(key);
+    const value = DEBT.has(item) ? `<span class="neg">${MINUS}${num(it.total)} ₾</span>` : gel(it.total);
+    const sub = it.accounts.length ? esc(L(nKey, { n: num(it.open) })) : "";
+    s += `<div class="row tap wc-r${open ? " on" : ""}" role="button" tabindex="0" data-dr-wc="${esc(key)}" aria-expanded="${open}"><div class="row-m"><div class="row-t">${esc(L(label))}</div>${sub ? `<div class="row-c">${sub}</div>` : ""}</div><div class="row-v">${value}</div><span class="chev">›</span></div>`;
+    if (open) s += `<div class="dr-p">${mainBody(item, it, can)}</div>`;
+  }
+  return card(esc(L("title")), esc(L("books_on", { d: dt(d.books_as_of) })), s) + `<div class="note">${esc(L("note"))} ${esc(L("main_note"))}</div>`;
+}
+function mainBody(k, it, can) {
+  const ctx = { co: "main", tab: "wc", sign: DEBT.has(k) ? -1 : 1, can };
+  if (!it.accounts.length && !(it.related || []).length) return `<div class="dr-l mut">${esc(L("none"))}</div>`;
+  const key = keyOf("main", "wc", "item", k), more = MORE[key] || 40;
+  let s = "";
+  for (const a of it.accounts.slice(0, more)) s += accountRow(ctx, a, amt(a.amount), a.last_entry ? esc(t("drill.last", { d: dt(a.last_entry) })) : "");
+  if (it.accounts.length > more) s += `<button class="dr-btn" data-dr-wc-more="${esc(key)}">${esc(t("drill.more_accounts", { n: num(it.accounts.length - more) }))}</button>`;
+  const rel = it.related || [];
+  if (rel.length) {
+    const rkey = keyOf("main", "wc", "related", k), ropen = isOpen(rkey);
+    s += `<button class="dr-btn" data-dr-wc="${esc(rkey)}" aria-expanded="${ropen}">${esc(L(ropen ? "related_hide" : "related", { n: num(rel.length), v: gel(it.related_total) }))}</button>`;
+    if (ropen) for (const a of rel) s += accountRow(ctx, a, amt(a.amount), esc([t("debts.rel." + a.related), a.last_entry ? t("drill.last", { d: dt(a.last_entry) }) : ""].filter(Boolean).join(" · ")));
+  }
+  return s;
+}
+
 function render(d, co) {
-  if (co === "main" || d.pending === "chart") return card(esc(L("title")), "", `<div class="empty">${esc(L("main_pending"))}</div>`);
-  return nursery(d);
+  if (d.pending === "chart") return card(esc(L("title")), "", `<div class="empty">${esc(L("main_pending"))}</div>`);   // a function before debug-1011 #4
+  return co === "main" ? main(d) : nursery(d);
 }
 export default function view(d, me, _t, co) { drillCss(); css(); return section("wc", me, co, d, render); }
 
@@ -61,7 +99,11 @@ if (typeof document !== "undefined" && !window.__wcView) {
     const TG = window.Telegram && window.Telegram.WebApp; if (TG && TG.HapticFeedback) TG.HapticFeedback.selectionChanged();
     toggleLocal(el.dataset.drWc);   // a static import: the published page stamps ?v= on static imports only (one module instance)
   };
-  document.addEventListener("click", (e) => { const el = e.target.closest("[data-dr-wc]"); if (el) act(el); });
+  document.addEventListener("click", (e) => {
+    const m = e.target.closest("[data-dr-wc-more]");
+    if (m) { MORE[m.dataset.drWcMore] = (MORE[m.dataset.drWcMore] || 40) + 40; redrawView(); return; }
+    const el = e.target.closest("[data-dr-wc]"); if (el) act(el);
+  });
   document.addEventListener("keydown", (e) => { const el = (e.key === "Enter" || e.key === " ") && e.target.closest && e.target.closest("[data-dr-wc]"); if (el) { e.preventDefault(); act(el); } });
 }
 

@@ -10,7 +10,7 @@
 // Design C „ნახაზი": framed sheet, two figures as the hero cells (one per side - never a difference), a sort control
 // (amount | age) as a segmented strip, rows with a scale bar (share of the largest row of that list), tap = the
 // documents sheet (the shell's .det), the title block with sources and the rule at the end. Nothing eases.
-import { t, esc, num, gel, dt, caps, cut } from "../ui.js?v=3fc30c6.202611101430";
+import { t, esc, num, gel, dt, caps, cut } from "../ui.js?v=f320af5.202611101900";
 
 const L = (k, p) => t("debts." + k, p);
 const S = { me: null, secs: [], pass: false, sort: "amount", all: {} };
@@ -27,13 +27,31 @@ function age(r, opens) {
   return r.days <= 0 ? L("today") : L("days", { n: num(r.days) });
 }
 const kindWord = (r) => L("kind." + r.kind);
-const label = (r) => (r.name ? esc(r.name) : esc(kindWord(r)));
+// debug-1011 #9: a private person the investor sees as „ფიზიკური პირი" - the word ფულის მოძრაობა draws (cash.w.person)
+const label = (r) => (r.name ? esc(r.name) : r.person ? esc(t("cash.w.person")) : esc(kindWord(r)));
+const reasonWord = (r) => (r.reason ? L("reason." + r.reason) : "");
+// the tax row's parts on one line: the three largest by name, then „… ±rest" so the parts shown plus the rest are the
+// row's amount on screen to the lari (rounded as drawn; debug-1011 #10: +29 075 +3 940 −1 875 = 31 140 beside 31 488)
+const TAX_SHOWN = 3;
+const pm = (v) => (v < 0 ? "−" : "+") + gel(Math.abs(v));
+const rd = (v) => Math.sign(v) * Math.round(Math.abs(v));   // as gel() draws it (half away from zero)
+function taxShort(r) {
+  const ps = r.parts || [], shown = ps.slice(0, TAX_SHOWN);
+  let s = shown.map((p) => L("tax_s." + p.agg) + " " + pm(rd(p.balance))).join(", ");
+  if (ps.length > TAX_SHOWN) {
+    const net = ps.reduce((a, p) => a + p.balance, 0), whole = (net < 0 ? -1 : 1) * rd(r.amount);
+    const rest = whole - shown.reduce((a, p) => a + rd(p.balance), 0);
+    if (rest) s += ", … " + pm(rest);
+  }
+  return s;
+}
 function whyShort(r) {
-  if (r.kind === "taxes") return (r.parts || []).slice(0, 3).map((p) => L("tax_s." + p.agg) + " " + (p.balance < 0 ? "−" : "+") + gel(Math.abs(p.balance))).join(", ");
+  if (r.kind === "taxes") return taxShort(r);
   if (r.members) return L("members", { n: num(r.members) });
   const w = (r.why || []).map((x) => x.name).filter(Boolean);
   const g = (r.rsge && r.rsge.goods) || [];
   const parts = (g.length ? g : w).slice(0, 2).map((x) => cut(x, 34));
+  if (!parts.length && r.reason) parts.push(reasonWord(r));   // no goods text, no account name (the investor's rows): the reason word
   if (r.tenders && r.tenders.length) parts.push(r.tenders[0]);
   return parts.join(", ");
 }
@@ -52,6 +70,7 @@ function detail(r, d) {
   if (r.from_opening && r.open_lines) h += `<p class="db-p">${esc(L("d_from_open", { d: dtY(d.opens) }))}</p>`;
   if (r.last_entry) h += kv(esc(L("last", { d: "" }).trim()), esc(dtY(r.last_entry)));
   if ((r.why || []).length) h += `<div class="db-h">${esc(L("why"))}</div>` + r.why.map((w) => kv(esc(cut(w.name, 60)), gel(w.amount))).join("");
+  else if (r.reason) h += kv(esc(L("why")), esc(reasonWord(r)));
   const R = r.rsge;
   if (R && R.invoices) h += kv(esc(L("d_inv")), `${num(R.invoices)}${R.invoices_gel != null ? " · " + gel(R.invoices_gel) : ""}`);
   if (R && R.waybills) h += kv(esc(L("d_wb")), `${num(R.waybills)}${R.waybills_gel != null ? " · " + gel(R.waybills_gel) : ""}`);
@@ -75,7 +94,7 @@ function rows(list, co, side, d) {
   const max = Math.max(...list.map((r) => r.amount)) || 1;
   return shown.map((r, i) => {
     const id = `db-${key}-${i}`, a = age(r, d.opens);
-    const sub = [r.name ? esc(kindWord(r)) : "", a ? `<span class="nw">${esc(a)}</span>` : "", esc(whyShort(r))].filter(Boolean).join(" · ");
+    const sub = [r.name || r.person ? esc(kindWord(r)) : "", a ? `<span class="nw">${esc(a)}</span>` : "", esc(whyShort(r))].filter(Boolean).join(" · ");
     return `<div class="row tap" data-det="${id}"><div class="row-m"><div class="row-t">${label(r)}</div><div class="row-c">${sub}</div>`
       + `<div class="bar"><i style="width:${Math.max(0.6, 100 * r.amount / max).toFixed(1)}%"></i></div></div>`
       + `<div class="row-v">${gel(r.amount)}</div><span class="chev">›</span></div>`

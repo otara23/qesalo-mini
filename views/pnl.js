@@ -19,7 +19,7 @@
 // column live here; a change re-asks the function itself (the same endpoint and body as app.js, plus `pnl: { p, only,
 // d }`) and redraws #view, keeping the old sheet at reduced opacity while it loads. The period is kept in the address
 // (?tab=pnl&p=…).
-import { t, esc, num, gel, dt, mt, caps, SYM, cut, lang } from "../ui.js?v=3fc30c6.202611101430";
+import { t, esc, num, gel, dt, mt, caps, SYM, cut, lang } from "../ui.js?v=f320af5.202611101900";
 
 const API = "https://owgvoonnsccujzpbprpw.supabase.co/functions/v1/mini";   // = mini/app.js API
 const S = { me: null, secs: [], pass: false, p: null, open: {}, lines: {}, sel: {}, tbl: {}, custom: false, busy: false, err: null, url: false };
@@ -118,24 +118,25 @@ function hero(d) {
     + `<div class="hero pl-res"><div class="hero-l">${esc(w)}</div><div class="hero-v">${sg(op)}</div><div class="hero-s">${esc(sub)}</div></div>`;
 }
 // the ranked plain categories of one side; the expense gets the segmented bar above them (numbered as on a plan: the
-// first five ranked rows 1-5, every further row 6 = one segment „დანარჩენი")
+// first five ranked rows 1-5; with more than six, every further row shares segment 6 = „დანარჩენი" - its swatch with no
+// digit, the bar's segment too, so no two rows read as the same rank (debug-1011 #13: Прочее and Банк were both ⑥))
 const SEG = 6;
 function ranked(co, d, side, total) {
-  const list = (d.plain && d.plain[side]) || [], pos = list.filter((c) => c.amount > 0);
+  const list = (d.plain && d.plain[side]) || [], pos = list.filter((c) => c.amount > 0), rest = side === "exp" && pos.length > SEG;
   const nOf = (c) => (side !== "exp" || !(c.amount > 0) ? 0 : Math.min(pos.indexOf(c) + 1, SEG));
   let s = "";
   if (side === "exp" && total > 0 && pos.length) {
-    const segs = pos.length <= SEG ? pos.map((c, i) => ({ v: c.amount, i: i + 1, w: word(c.label) }))
-      : [...pos.slice(0, SEG - 1).map((c, i) => ({ v: c.amount, i: i + 1, w: word(c.label) })), { v: pos.slice(SEG - 1).reduce((a, c) => a + c.amount, 0), i: SEG, w: L("rest") }];
+    const segs = !rest ? pos.map((c, i) => ({ v: c.amount, i: i + 1, w: word(c.label) }))
+      : [...pos.slice(0, SEG - 1).map((c, i) => ({ v: c.amount, i: i + 1, w: word(c.label) })), { v: pos.slice(SEG - 1).reduce((a, c) => a + c.amount, 0), i: SEG, w: L("rest"), rest: true }];
     s += `<div class="pl-sb" role="img" aria-label="${esc(segs.map((g) => g.w + " " + num(100 * g.v / total, 0) + " %").join(", "))}">`
-      + segs.map((g) => `<i class="f${g.i}" style="flex:${g.v.toFixed(2)} 1 0">${g.v / total >= 0.07 ? `<b>${g.i}</b>` : ""}</i>`).join("") + `</div>`;
+      + segs.map((g) => `<i class="f${g.i}" style="flex:${g.v.toFixed(2)} 1 0">${g.v / total >= 0.07 && !g.rest ? `<b>${g.i}</b>` : ""}</i>`).join("") + `</div>`;
   }
-  return s + list.map((c) => catRow(co, d, side, c, nOf(c), total)).join("");
+  return s + list.map((c) => catRow(co, d, side, c, nOf(c), total, rest && nOf(c) === SEG)).join("");
 }
-function catRow(co, d, side, c, n, total) {
+function catRow(co, d, side, c, n, total, inRest = false) {
   const key = `${side}:${c.key}`, open = S.open[co] === key, can = !!(d.can && d.can.lines), tap = (c.sub || []).length > 1 || can;
   const share = total > 0 && c.amount > 0 ? L(side === "exp" ? "of_exp" : "of_rev", { p: num(100 * c.amount / total, 1) }) : "";
-  const head = `<span class="pl-k${n ? "" : " no"}">${n ? `<i class="f${n}"></i><b>${n}</b>` : ""}</span><span class="row-m"><span class="row-t">${esc(word(c.label))}</span>`
+  const head = `<span class="pl-k${n ? "" : " no"}">${n ? `<i class="f${n}"></i>${inRest ? "" : `<b>${n}</b>`}` : ""}</span><span class="row-m"><span class="row-t">${esc(word(c.label))}</span>`
     + `${share ? `<span class="row-c">${esc(share)}</span>` : ""}</span><span class="row-v">${sg(c.amount)}</span>`;
   return tap ? `<button class="row pl-row tap${open ? " open-r" : ""}" data-pl-cat="${co}|${side}|${esc(c.key)}" aria-expanded="${open}">${head}<span class="chev">›</span></button>${open ? drill(co, d, side, c) : ""}`
     : `<div class="row pl-row">${head}</div>`;

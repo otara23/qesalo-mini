@@ -9,8 +9,8 @@
 // schema/034a + 034b; the main company's months before 1.01.2023 show a balance only for classes 6-9), so the main
 // company's matrix note is the nursery's (m_note_main said 1-5 had no balance). A view of the books - nothing here
 // judges a line.
-import { t, esc, num, gel, dt, card, row, stat } from "../ui.js?v=3fc30c6.202611101430";
-import { section, accountRow, keyOf, isOpen, slot, moreOf, drillCss, cpt, monShort, amt, redrawView } from "./drill-ui.js?v=3fc30c6.202611101430";
+import { t, tOr, lang, esc, num, gel, dt, card, row, stat } from "../ui.js?v=f320af5.202611101900";
+import { section, accountRow, keyOf, isOpen, slot, moreOf, drillCss, cpt, monShort, amt, redrawView } from "./drill-ui.js?v=f320af5.202611101900";
 
 const L = (k, p) => t("books." + k, p);
 const V = { side: "d" };   // the matrix reading: d = debit turnover, c = credit turnover
@@ -19,7 +19,9 @@ const kGel = (v) => { const a = Math.abs(Number(v) || 0) / 1000, s = Number(v) <
 
 function nursery(d) {
   const l = d.lag || {};
-  let s = `<div class="grid2">${stat(t("books.last_entry"), dt(l.last_entry_date), l.days_since_entry != null ? t("books.days_ago", { n: l.days_since_entry }) : "")}${stat(t("books.entered"), dt(l.last_entered_on), "ORIS")}</div>`;
+  // debug-1011 #6: days_since_entry counts from the last ENTERED line (v_books_lag: today - last_entered_on), so it goes
+  // under „ბოლოს შეყვანილი", as the main company's does (main() below)
+  let s = `<div class="grid2">${stat(t("books.last_entry"), dt(l.last_entry_date), "ORIS")}${stat(t("books.entered"), dt(l.last_entered_on), l.days_since_entry != null ? t("books.days_ago", { n: l.days_since_entry }) : "")}</div>`;
   s += card(t("books.new_30"), "", row(t("books.added"), "", num(d.added)));
   s += card(t("books.recent"), (d.recent || []).length, (d.recent || []).map((r) => row(`<span class="mono">${esc(r.debit)} → ${esc(r.credit)}</span>`, dt(r.entry_date) + (r.doc ? " · " + esc(r.doc) : ""), gel(r.amount_gel, 2))).join(""));
   return s + matrix(d, "nursery") + compare(d);
@@ -42,6 +44,9 @@ function main(d) {
 }
 
 // ---------------- the account classes x the last 6 months ----------------
+// a class's name: ORIS's own words in Georgian; ru / en the panel's words for classes 1-9 (books.cls, debug-1011 #12 -
+// ORIS's level-1 names came through untranslated), ORIS's name when a class has none there
+const clsName = (c) => (lang() === "ka" ? c.name || tOr(`books.cls.${c.cls}`, "") : tOr(`books.cls.${c.cls}`, c.name || ""));
 function matrix(d, co) {
   const M = d.matrix;
   if (!M || !(M.months || []).length) return "";
@@ -51,10 +56,12 @@ function matrix(d, co) {
   const cols = M.months.map((m, i) => `<span${i === M.months.length - 1 ? ' class="now"' : ""}>${esc(monShort(m))}</span>`).join("");
   let s = `<div class="bk-g"><div class="bk-r bk-hd"><span class="k">${esc(L("m_class"))}</span>${cols}</div>`;
   for (const c of M.classes) {
-    const key = keyOf(co, "books", "class", c.cls), open = isOpen(key), vals = c[side] || [];
-    if (!c.lines) { s += `<div class="bk-r bk-z"><span class="k"><b>${c.cls}</b><small>${esc(c.name || "")}</small></span>${vals.map(() => "<span>·</span>").join("")}</div>`; continue; }
-    s += `<div class="bk-r${open ? " on" : ""}" role="button" tabindex="0" data-dr="${esc(key)}" aria-expanded="${open}" aria-label="${esc(L("m_aria", { c: c.cls, n: c.name || "" }))}">`
-      + `<span class="k"><b>${c.cls}</b><small>${esc(c.name || "")}</small></span>${vals.map((v, i) => `<span${i === vals.length - 1 ? ' class="now"' : ""}>${v ? esc(kGel(v)) : "·"}</span>`).join("")}</div>`;
+    const key = keyOf(co, "books", "class", c.cls), open = isOpen(key), vals = c[side] || [], nm = clsName(c);
+    // the class's name on its own line above its six figures (debug-1011 #12: cut to „მიმდინარე აქ…" at 390 px before)
+    const k = `<span class="k"><b>${c.cls}</b></span><span class="nm">${esc(nm)}</span>`;
+    if (!c.lines) { s += `<div class="bk-r bk-z">${k}${vals.map(() => "<span>·</span>").join("")}</div>`; continue; }
+    s += `<div class="bk-r${open ? " on" : ""}" role="button" tabindex="0" data-dr="${esc(key)}" aria-expanded="${open}" aria-label="${esc(L("m_aria", { c: c.cls, n: nm }))}">`
+      + `${k}${vals.map((v, i) => `<span${i === vals.length - 1 ? ' class="now"' : ""}>${v ? esc(kGel(v)) : "·"}</span>`).join("")}</div>`;
     if (open) s += `<div class="dr-p bk-p">${classBody(d, co, c, key)}</div>`;
   }
   s += `</div>`;
@@ -123,20 +130,21 @@ function css() {
 .bk-seg button+button{border-left:1.5px solid var(--q-rule)}
 .bk-seg button[aria-pressed="true"]{background:var(--q-invert);color:var(--q-on-invert)}
 .bk-g{overflow-x:auto}
-.bk-r{display:grid;grid-template-columns:minmax(78px,1.5fr) repeat(6,minmax(38px,1fr));align-items:center;min-height:44px;border-top:1px solid var(--q-rule-light);cursor:pointer;transition:background-color 90ms var(--step)}
+.bk-r{display:grid;grid-template-columns:36px repeat(6,minmax(38px,1fr));row-gap:2px;align-items:center;min-height:44px;padding:5px 0;border-top:1px solid var(--q-rule-light);cursor:pointer;transition:background-color 90ms var(--step)}
 .bk-r:active{background:var(--q-surface-2)}
 .bk-r.on{box-shadow:inset 3px 0 0 var(--q-ink)}
 .bk-r.on .k{padding-left:9px}
 .bk-r>span{font:600 12px/15px var(--ff);font-stretch:75%;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;padding:0 0 0 4px}
 .bk-r>span.now{font-weight:800}
-.bk-r .k{text-align:left;min-width:0;display:flex;align-items:baseline;gap:6px;padding:0}
+.bk-r .k{text-align:left;min-width:0;padding:0}
+.bk-r:not(.bk-hd) .k{grid-column:1;grid-row:1 / span 2}
 .bk-r .k b{font:800 17px/20px var(--ff);font-stretch:62.5%}
-.bk-r .k small{font:400 11px/13px var(--ff);color:var(--q-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.bk-r>span.nm{grid-column:2 / -1;grid-row:1;min-width:0;text-align:left;white-space:normal;overflow-wrap:anywhere;font:400 11px/13px var(--ff);font-stretch:normal;color:var(--q-muted)}
 .bk-hd,.bk-z{cursor:default}
-.bk-hd{min-height:28px;border-top:0}
+.bk-hd{min-height:28px;border-top:0;padding:0}
 .bk-hd>span{font:600 11px/13px var(--ff);font-stretch:75%;letter-spacing:.06em;color:var(--q-muted)}
 .bk-z>span{color:var(--q-rule-light)}
-.bk-z .k b{color:var(--q-muted)}
+.bk-z .k b,.bk-z>span.nm{color:var(--q-muted)}
 .bk-p{margin:0 -12px}
 .bk-n{border-top:1px solid var(--q-rule-light)}
 `;

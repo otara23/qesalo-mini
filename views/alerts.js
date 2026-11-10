@@ -1,6 +1,6 @@
 // შეტყობინებები (both companies): the open alerts the gate routes to this person; a.ack (wave polish1) = the person may
 // close it - a ✓ cell, as the bot's ✓ under a push.
-import { t, esc, card, tm, lvl } from "../ui.js?v=3fc30c6.202611101430";
+import { t, esc, card, tm, lvl } from "../ui.js?v=f320af5.202611101900";
 
 export default function view(d) {
   const A = d.alerts || [];
