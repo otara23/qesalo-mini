@@ -13,7 +13,7 @@
 // the selected column live here; a change re-asks the function itself (the same endpoint and body as app.js, plus
 // `pnl: { p, r, only, d }`) and redraws #view, keeping the old sheet at reduced opacity while it loads - until app.js
 // offers the view hooks of bot-v3-pnl.md PR-2. The period is kept in the address (?tab=pnl&p=…&r=…).
-import { t, esc, num, gel, dt, tm, mt, caps, SYM, cut } from "../ui.js?v=c8fb59c.202611101158";
+import { t, esc, num, gel, dt, tm, mt, caps, SYM, cut } from "../ui.js?v=ccf0f36.202611101216";
 
 const API = "https://owgvoonnsccujzpbprpw.supabase.co/functions/v1/mini";   // = mini/app.js API (PR-2: a hook instead)
 const S = { me: null, secs: [], pass: false, p: null, r: null, open: {}, acct: {}, lines: {}, sel: {}, tbl: {}, custom: false, busy: false, err: null, url: false };

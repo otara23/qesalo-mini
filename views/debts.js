@@ -10,7 +10,7 @@
 // Design C „ნახაზი": framed sheet, two figures as the hero cells (one per side - never a difference), a sort control
 // (amount | age) as a segmented strip, rows with a scale bar (share of the largest row of that list), tap = the
 // documents sheet (the shell's .det), the title block with sources and the rule at the end. Nothing eases.
-import { t, esc, num, gel, dt, caps, cut } from "../ui.js?v=c8fb59c.202611101158";
+import { t, esc, num, gel, dt, caps, cut } from "../ui.js?v=ccf0f36.202611101216";
 
 const L = (k, p) => t("debts." + k, p);
 const S = { me: null, secs: [], pass: false, sort: "amount", all: {} };
@@ -37,12 +37,9 @@ function whyShort(r) {
   if (r.tenders && r.tenders.length) parts.push(r.tenders[0]);
   return parts.join(", ");
 }
-function reconPill(r) {
-  if (!r.recon) return "";
-  const g = Number(r.recon.gap || 0);
-  return r.recon.flag ? `<span class="pill p-warn">${esc(L("recon_gap", { v: (g > 0 ? "+" : "−") + gel(Math.abs(g)) }))}</span>`
-    : `<span class="pill p-ok">${esc(L("recon_ok"))}</span>`;
-}
+// otar-1011 §1.7 A (Otar 10.11: accounting is the single source of truth): the rs.ge-vs-books columns of a row are not
+// drawn for anyone - a second number beside a debt confuses; the accountant finds the same gap on ბუღალტერია. debts.ts
+// may keep sending r.recon (the harness compares the cards).
 const kv = (k, v) => `<div><span>${k}</span><b>${v}</b></div>`;
 function detail(r, d) {
   let h = "";
@@ -61,12 +58,6 @@ function detail(r, d) {
   if (R && (R.goods || []).length) h += kv(esc(L("d_goods")), esc(R.goods.map((g) => cut(g, 40)).join(", ")));
   if ((r.tenders || []).length) h += kv(esc(L("d_tender")), esc(r.tenders.join(", ")));
   if (r.tin) h += kv(esc(L("d_tin")), esc(r.tin));
-  if (r.recon) {
-    const c = r.recon;
-    h += `<div class="db-h">${esc(L("d_recon_t"))}</div>` + kv(esc(L("d_invoiced")), `${gel(c.invoiced, 2)} (${num(c.invoices)})`)
-      + kv(esc(L("d_booked")), gel(c.booked, 2)) + kv(esc(L("d_gap")), (Number(c.gap) > 0 ? "+" : Number(c.gap) < 0 ? "−" : "") + gel(Math.abs(Number(c.gap || 0)), 2))
-      + kv(esc(L("d_paid_books")), gel(c.paid_books, 2)) + kv(esc(L("d_paid_bank")), gel(c.paid_bank, 2));
-  }
   if ((r.lines || []).length) {
     h += `<div class="db-h">${esc(L("d_lines", { n: r.lines.length }))}</div>` + r.lines.map((l) =>
       `<div class="db-l"><span>${esc(dtY(l.d))}${l.doc ? `<small>${esc(cut(l.doc, 30))}</small>` : ""}</span><span class="db-w">${esc(cut(l.what || l.story || "", 64))}</span><b>${gel(l.amount, 2)}</b></div>`).join("");
@@ -87,7 +78,7 @@ function rows(list, co, side, d) {
     const sub = [r.name ? esc(kindWord(r)) : "", a ? `<span class="nw">${esc(a)}</span>` : "", esc(whyShort(r))].filter(Boolean).join(" · ");
     return `<div class="row tap" data-det="${id}"><div class="row-m"><div class="row-t">${label(r)}</div><div class="row-c">${sub}</div>`
       + `<div class="bar"><i style="width:${Math.max(0.6, 100 * r.amount / max).toFixed(1)}%"></i></div></div>`
-      + `<div class="row-v">${gel(r.amount)}${reconPill(r) ? `<small>${reconPill(r)}</small>` : ""}</div><span class="chev">›</span></div>`
+      + `<div class="row-v">${gel(r.amount)}</div><span class="chev">›</span></div>`
       + `<div class="det" id="det${id}">${detail(r, d)}</div>`;
   }).join("") + (!all && xs.length > FIRST ? `<button class="db-more" data-dbmore="${key}">${esc(L("more", { n: num(xs.length) }))}</button>` : "");
 }

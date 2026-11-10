@@ -9,8 +9,8 @@
 // schema/034a + 034b; the main company's months before 1.01.2023 show a balance only for classes 6-9), so the main
 // company's matrix note is the nursery's (m_note_main said 1-5 had no balance). A view of the books - nothing here
 // judges a line.
-import { t, esc, num, gel, dt, card, row, stat } from "../ui.js?v=c8fb59c.202611101158";
-import { section, accountRow, keyOf, isOpen, slot, moreOf, drillCss, cpt, monShort, amt, redrawView } from "./drill-ui.js?v=c8fb59c.202611101158";
+import { t, esc, num, gel, dt, card, row, stat } from "../ui.js?v=ccf0f36.202611101216";
+import { section, accountRow, keyOf, isOpen, slot, moreOf, drillCss, cpt, monShort, amt, redrawView } from "./drill-ui.js?v=ccf0f36.202611101216";
 
 const L = (k, p) => t("books." + k, p);
 const V = { side: "d" };   // the matrix reading: d = debit turnover, c = credit turnover
@@ -37,7 +37,8 @@ function main(d) {
     + row(t("books.non_op"), t("books.non_op_sub", { i: gel(d.non_op_income), e: gel(d.non_op_expense) }), `<span class="${d.non_op < 0 ? "neg" : ""}">${gel(d.non_op)}</span>`)
     + row(t("books.class9"), "", gel(d.class9)));
   if (d.wip > 0) s += `<div class="note">${t("books.wip_note", { v: gel(d.wip) })}</div>`;
-  return s + matrix(d, "main") + `<div class="note">${esc(L("main_compare"))}</div>`;
+  // otar-1011 §1.7 A: no „bank ↔ books is not measured yet" caption under the main company's matrix (books.main_compare)
+  return s + matrix(d, "main");
 }
 
 // ---------------- the account classes x the last 6 months ----------------
