@@ -16,7 +16,7 @@
 // the movements by day from ./functions/mini/moves.ts (schema/042), 200 at a time. Inflows carry the 3 px ink bar at the
 // left, outflows none; the direction is the bar + the word + the sign, never a colour. The filter lives here and goes
 // with every load of the tab (params()), so a company switch and the live refresh keep it; „ორივე" = one card per company.
-import { t, tOr, esc, num, gel, dt, tm, card, row, barRow, span, fxAmt, SYM, caps, stat, mt } from "../ui.js?v=16459b0.202611101234";
+import { t, tOr, esc, num, gel, dt, tm, card, row, barRow, span, fxAmt, SYM, caps, stat, mt } from "../ui.js?v=f1ab646.202611101300";
 
 const ymd = (s) => { const d = new Date(s); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
 const at = (asOf, fetched) => (fetched && asOf && ymd(fetched) === String(asOf).slice(0, 10) ? tm(fetched) : dt(asOf));
@@ -67,13 +67,16 @@ const flt = (co) => (MV.f[co] ||= { p: "30", from: null, to: null, bank: null })
 const srcName = (b) => (b === "TILL" ? t("cash.till") : tOr("bank." + b, b));
 const amt = (v, ccy) => { const a = Math.abs(Number(v) || 0), s = Number(v) < 0 ? MINUS : "+"; return s + (ccy && ccy !== "GEL" ? fxAmt(a, ccy) : gel(a, a < 100 && a % 1 ? 2 : 0)); };
 const dayHead = (d) => `${dt(d)} · ${(t("cash.wd") || [])[new Date(d + "T00:00:00").getDay()] || ""}`;
-const whoText = (x) => (x.who ? esc(x.who) : x.w === "bank" ? esc(srcName(x.bank)) : esc(tOr("cash.w." + x.w, "—")));
+// a word the function sends as w: cash.w.<w>, else the kind's word cash.kind.<w> (w: "wages" - a salary line „ხელფასი"
+// alone for a level outside lib/cash-kinds.json wage_names, Otar's Q23)
+const wWord = (w, dflt) => tOr("cash.w." + w, tOr("cash.kind." + w, dflt));
+const whoText = (x) => (x.who ? esc(x.who) : x.w === "bank" ? esc(srcName(x.bank)) : esc(wWord(x.w, "—")));
 // the row: who; „შემოვიდა · {bank} · {kind}" (no kind where who already says it: an exchange, own accounts); for admin /
 // masters the bank's purpose text under it unless it only repeats the kind or who („ხელფასი", „ვალუტის გაცვლა")
 const norm = (a) => String(a || "").replace(/[\s.]+/g, " ").trim().toLowerCase();
 const same = (a, b) => norm(a) === norm(b);
 function mrow(x) {
-  const kind = tOr("cash.kind." + x.kind, x.kind), who = x.who || (x.w === "bank" ? srcName(x.bank) : tOr("cash.w." + x.w, ""));
+  const kind = tOr("cash.kind." + x.kind, x.kind), who = x.who || (x.w === "bank" ? srcName(x.bank) : wWord(x.w, ""));
   const c = `${esc(t(x.dir === "in" ? "cash.in" : "cash.out"))} · ${esc(srcName(x.bank))}${same(kind, who) ? "" : " · " + esc(kind)}`;
   const p = x.purpose && !same(x.purpose, kind) && !same(x.purpose, who) ? x.purpose : null;
   const v = x.currency === "GEL" ? amt(x.amount) : amt(x.amount, x.currency) + `<small>${x.gel == null ? "—" : amt(x.gel)}</small>`;

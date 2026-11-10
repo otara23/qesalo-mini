@@ -4,7 +4,7 @@
 // docs/doctor.md). A feed whose last attempt failed after its last good run shows the warning dot at once (the doctor's
 // group rows; before, a dot turned only when the feed went stale). Words not yet in ka.json fall back to their Georgian
 // here (patch request to i18n/surface: plans/_work/bot-v3-doctor.md).
-import { t, tOr, esc, tm, card, row, stat } from "../ui.js?v=16459b0.202611101234";
+import { t, tOr, esc, tm, card, row, stat } from "../ui.js?v=f1ab646.202611101300";
 
 const W = (k, ka) => tOr("trust." + k, ka);
 const VERDICT = { ok: ["ok", "ყველაფერი მუშაობს"], warn: ["warn", "ყურადღება"], bad: ["bad", "რაღაც არ მუშაობს"] };
