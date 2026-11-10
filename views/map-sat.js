@@ -8,7 +8,7 @@
 // cells „+ −"; Telegram's swipe-to-close off while this view is on (Telegram.WebApp.disableVerticalSwipes) and back on
 // when it goes. Tile failures: after 6 errors the note „ორთოფოტო ამჟამად მიუწვდომელია" and the lines stay on the paper.
 // NDVI (the farm): L.imageOverlay of the function's PNG in its own pane, above the imagery, below the lines.
-import { t, esc } from "../ui.js?v=fd10a8c.202611101337";
+import { t, esc } from "../ui.js?v=c340a6e.202611101355";
 
 const L_ = (k, p) => t("map." + k, p);
 export const LEAFLET = {

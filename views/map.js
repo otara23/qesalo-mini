@@ -10,8 +10,8 @@
 // feature's sheet; 6 the title block (only the sources on screen).
 // The investor (the nursery's): map.ts sends only his rows, names in Russian / English, no code, no source, no
 // provisional word - this file prints the provisional lines only when the data carries them (admin and masters).
-import { t, esc, num, dt, mt, caps } from "../ui.js?v=fd10a8c.202611101337";
-import { effects } from "./agro.js?v=fd10a8c.202611101337";
+import { t, esc, num, dt, mt, caps, gel, cut as cutT } from "../ui.js?v=c340a6e.202611101355";
+import { effects } from "./agro.js?v=c340a6e.202611101355";
 
 const L = (k, p) => t("map." + k, p);
 const A = (k, p) => t("agro." + k, p);
@@ -112,6 +112,15 @@ function markSvg(lv, x, y) {
   return `<path class="mk okk" d="M${f1(x - 4.5)},${f1(y)}L${f1(x - 1)},${f1(y + 4)}L${f1(x + 5)},${f1(y - 4.5)}"/>`;
 }
 
+// a pin's status: ○ running · ▲ ends in 30 days · ✓ the works done, the care runs on · ◆ overdue · ◌ being signed
+function stSvg(st, x, y) {
+  const halo = `stroke="var(--q-surface)" stroke-width="2.5" paint-order="stroke"`;
+  if (st === "overdue") return `<rect class="mk bad" x="${f1(x - 4.5)}" y="${f1(y - 4.5)}" width="9" height="9" transform="rotate(45 ${f1(x)} ${f1(y)})" ${halo}/>`;
+  if (st === "soon") return `<path class="mk warn" d="M${f1(x)},${f1(y - 5.5)}L${f1(x + 5.5)},${f1(y + 4.5)}L${f1(x - 5.5)},${f1(y + 4.5)}Z" ${halo}/>`;
+  if (st === "care") return `<path class="mk okk" d="M${f1(x - 4)},${f1(y)}L${f1(x - 1)},${f1(y + 3.5)}L${f1(x + 4.5)},${f1(y - 4)}"/>`;
+  return `<circle class="mk info" cx="${f1(x)}" cy="${f1(y)}" r="4" ${halo}${st === "signing" ? ' stroke-dasharray="2 2"' : ""}/>`;
+}
+
 // ---------------- the drawing ----------------
 const PAT = { almond: "h45", pomegranate: "h135", cypress: "hv" };
 function plan(co, d, sh, W, H) {
@@ -125,8 +134,14 @@ function plan(co, d, sh, W, H) {
     + `<pattern id="${id("hv")}" width="6" height="6" patternUnits="userSpaceOnUse"><rect class="pb" width="6" height="6"/><line class="pl" x1="3" y1="0" x2="3" y2="6"/></pattern>`
     + `<pattern id="${id("hx")}" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect class="pb" width="6" height="6"/><line class="pl" x1="0" y1="0" x2="0" y2="6"/><line class="pl" x1="0" y1="0" x2="6" y2="0"/></pattern>`
     + `<pattern id="${id("hs")}" width="4" height="4" patternUnits="userSpaceOnUse"><rect class="pb" width="4" height="4"/><line class="pl" x1="0" y1="2" x2="4" y2="2"/></pattern>`
+    + `<pattern id="${id("hd")}" width="6" height="6" patternUnits="userSpaceOnUse"><rect class="pb" width="6" height="6"/><circle class="pd" cx="3" cy="3" r="1"/></pattern>`
     + `</defs>`;
-  const order = ["river", "canal", "lease", "parcel", "servitude", "block", "yard", "road", "fence", "solar", "tank", "building", "well", "camera"];
+  const order = ["country", "district", "river", "canal", "lease", "parcel", "servitude", "block", "yard", "road", "fence", "solar", "tank", "building", "well", "camera", "pin_site", "pin_contract"];
+  // the main company: a district a care contract covers is hatched (45°), the kindergartens' districts dotted
+  const hatchOf = new Map();
+  for (const f of feats) if (f.kind === "pin_contract" && f.districts) for (const x of f.districts) if (hatchOf.get(x) !== "care") hatchOf.set(x, f.hatch || "care");
+  const stOf = (fid) => { const pn = (d.pins || []).find((x) => x.id === fid); return pn && pn.contract ? pn.contract.status : null; };
+  const taken = [];
   const byKind = (k) => feats.filter((f) => f.kind === k);
   const planned = (f) => f.status === "planned";
   let g = "", tx = "", hit = "", nums = [];
@@ -134,9 +149,16 @@ function plan(co, d, sh, W, H) {
   const num_ = new Map();
   for (const k of order) for (const f of byKind(k)) {
     const p = pathOf(P, f.geom), cls = `${k}${planned(f) ? " pln" : ""}${f.id === sel ? " sel" : ""}`;
-    if (k === "block") g += `<path class="${cls}" d="${p}" fill="url(#${id(PAT[f.crop] || "hv")})" fill-rule="evenodd"/>`;
-    else if (k === "yard") g += `<path class="${cls}" d="${p}" fill="url(#${id("hx")})"/>`;
-    else if (k === "solar" && !planned(f)) g += `<path class="${cls}" d="${p}" fill="url(#${id("hs")})"/>`;
+    if (k === "block") g += `<path class="${cls}" d="${p}" style="fill:url(#${id(PAT[f.crop] || "hv")})" fill-rule="evenodd"/>`;
+    else if (k === "district" && hatchOf.has(f.district)) g += `<path class="${cls} dh" d="${p}" style="fill:url(#${id(hatchOf.get(f.district) === "kinder" ? "hd" : "h45")})" fill-rule="evenodd"/>`;
+    else if (k === "pin_site") { const [x, y] = P.px(f.geom.coordinates); g += `<rect class="${cls}" x="${f1(x - 6)}" y="${f1(y - 6)}" width="12" height="12"/>`; }
+    else if (k === "pin_contract") {
+      const [x, y] = P.px(f.geom.coordinates), st = stOf(f.id);
+      if (!f.districts) g += `<rect class="${cls}" x="${f1(x - 4.5)}" y="${f1(y - 4.5)}" width="9" height="9"/>`;
+      if (st && !f.districts) g += stSvg(st, x + 11, y - 9);
+    }
+    else if (k === "yard") g += `<path class="${cls}" d="${p}" style="fill:url(#${id("hx")})"/>`;
+    else if (k === "solar" && !planned(f)) g += `<path class="${cls}" d="${p}" style="fill:url(#${id("hs")})"/>`;
     else if (k === "road") g += `<path class="road-o" d="${p}"/><path class="road-i" d="${p}"/>`;
     else if (k === "well") { const [x, y] = P.px(f.geom.coordinates); g += `<circle class="${cls}" cx="${f1(x)}" cy="${f1(y)}" r="5"/><circle class="wc" cx="${f1(x)}" cy="${f1(y)}" r="1.6"/>`; }
     else if (k === "camera") { const [x, y] = P.px(f.geom.coordinates); g += `<rect class="${cls}" x="${f1(x - 3.5)}" y="${f1(y - 3.5)}" width="7" height="7"/>`; }
@@ -153,18 +175,20 @@ function plan(co, d, sh, W, H) {
     // labels: the parcels, the lease, the river and the servitude by name when the name fits inside; the rest by its
     // number in the legend. On the farm sheet a block is told by its hatch (the legend) and the yard by its frame;
     // the canal, the fence and the cameras by the legend only.
-    if (k === "canal" || k === "fence" || k === "camera") continue;
+    if (k === "canal" || k === "fence" || k === "camera" || k === "country") continue;
     const nm = nameOf(f, lang), lines = String(nm).split(" · "), lw = Math.max(...lines.map((s) => s.length)) * (lang === "ka" ? 6.6 : 5.8), lh = lines.length * 12;
-    const named = ["parcel", "lease", "river", "servitude"].includes(k) || (sh.id === "yard" && k === "block");
+    const named = ["parcel", "lease", "river", "servitude", "district"].includes(k) || (sh.id === "yard" && k === "block");
     if (!onSheet) continue;
     const fits = k === "river" || (a.room >= lh / 2 + 2 && a.room * 3 >= lw);
     if (named && fits) {
       const y0 = a.y - (lines.length - 1) * 6 + 4, lx = Math.max(lw / 2 + 4, Math.min(W - lw / 2 - 4, a.x));
       tx += `<text class="tx${k === "river" ? " it" : ""}" x="${f1(lx)}" y="${f1(y0)}">${lines.map((s, i) => `<tspan x="${f1(lx)}" dy="${i ? 12 : 0}">${esc(lab(s, lang))}</tspan>`).join("")}</text>`;
       boxes.push([lx - lw / 2, y0 - 10, lx + lw / 2, y0 + (lines.length - 1) * 12 + 3]);
-    } else if (sh.id === "yard" ? true : k !== "block" && k !== "yard" && !SMALL.includes(k)) {
+    } else if (k !== "district" && (sh.id === "yard" ? true : k !== "block" && k !== "yard" && !SMALL.includes(k))) {
       const n = nums.length + 1; nums.push(f); num_.set(f.id, n);
-      const bx = a.x + (k === "well" ? 7 : 0), by = a.y - (k === "well" ? 7 : 0);
+      let bx = a.x + (k === "well" ? 7 : k === "pin_contract" && !f.districts ? -12 : 0), by = a.y - (k === "well" ? 7 : 0);
+      while (taken.some(([tx0, ty0]) => Math.abs(tx0 - bx) < 15 && Math.abs(ty0 - by) < 15)) bx += 16;   // pins at one point side by side
+      taken.push([bx, by]);
       tx += `<g class="nb${f.id === sel ? " sel" : ""}" data-mp-f="${esc(f.id)}"><rect x="${f1(bx - 7)}" y="${f1(by - 7)}" width="14" height="14"/><text x="${f1(bx)}" y="${f1(by + 3.6)}">${n}</text></g>`;
       boxes.push([bx - 7, by - 7, bx + 7, by + 7]);
     }
@@ -225,7 +249,7 @@ function band(co, d) {
     + `<div class="mp-wm"><div class="mp-l">${esc(lab(A("hero_l", { d: dt(w.today) }), lang))}</div><div>${esc(A("rain"))} ${esc(num(t0.rain_mm ?? 0, 1))} · ${esc(L("wind_v", { v: ok(t0.wind_max) ? num(t0.wind_max) : "—" }))}</div></div></div>`
     + `<div class="mp-take">${w.outlook ? `<i class="dot ${lv}"></i>` : ""}<span>${esc(take)}</span></div>`
     + `<div class="mp-days" style="--n:${w.days.length}">${cells}</div>`
-    + `<div class="mp-cap">${esc(L("marks_on", { d: day === w.today ? A("today") : day ? A("dow_on")[wday(day)] + ", " + dt(day) : "—" }))}</div></div>`;
+    + (!d.features.some((f) => f.crop) ? "" : `<div class="mp-cap">${esc(L("marks_on", { d: day === w.today ? A("today") : day ? A("dow_on")[wday(day)] + ", " + dt(day) : "—" }))}</div>`) + `</div>`;
 }
 
 // ---------------- the legend ----------------
@@ -250,9 +274,18 @@ function legend(co, d, sh, nums, view) {
   if (has("well")) items.push([sw("", `<circle class="well" cx="11" cy="6" r="4.5"/><circle class="wc" cx="11" cy="6" r="1.4"/>`), L("leg_well")]);
   if (feats.some((f) => f.status === "planned")) items.push([sw("", `<rect class="building pln" x="1" y="1" width="20" height="10"/><circle class="ring" cx="11" cy="6" r="3"/>`), L("leg_planned")]);
   if (feats.some((f) => f.built_on && f.status === "built")) items.push([sw("", `<path class="bchk" d="M5,6l3,3.5l7,-7"/>`), L("leg_built")]);
-  const marks = `<div class="mp-lm"><span><i class="dot bad"></i>${esc(A("w_bad"))}</span><span><i class="dot warn"></i>${esc(A("w_warn"))}</span><span><i class="dot info"></i>${esc(A("w_info"))}</span><span><i class="dot ok"></i>${esc(L("w_cold"))}</span></div>`;
-  const numbered = nums.length ? `<ol class="mp-nl">${nums.map((f, i) => `<li data-mp-f="${esc(f.id)}" class="${f.id === ST.sel[co] ? "on" : ""}"><b>${i + 1}</b><span>${esc(nameOf(f, lang))}${f.status === "planned" ? ` <em>${esc(L("st_planned"))}</em>` : f.status === "in_progress" ? ` <em>${esc(L("st_in_progress"))}</em>` : ""}</span></li>`).join("")}</ol>` : "";
-  return `<div class="mp-leg"><div class="mp-l">${esc(lab(L("legend"), lang))}</div><div class="mp-li">${items.map(([s, w]) => `<span>${s}${esc(w)}</span>`).join("")}</div>${marks}${numbered}</div>`;
+  if (has("district")) items.push([sw("", `<rect class="district" x="1" y="1" width="20" height="10"/>`), L("leg_district")]);
+  if (feats.some((f) => f.kind === "pin_contract" && f.hatch === "care")) items.push([pat("h45"), L("leg_care")]);
+  if (feats.some((f) => f.kind === "pin_contract" && f.hatch === "kinder")) items.push([pat("hd"), L("leg_kinder")]);
+  if (has("pin_site")) items.push([sw("", `<rect class="pin_site" x="6" y="1" width="10" height="10"/>`), L("leg_site")]);
+  if (has("pin_contract", (f) => !f.districts)) items.push([sw("", `<rect class="pin_contract" x="6.5" y="1.5" width="9" height="9"/>`), L("leg_pin")]);
+  const isMain = d.company === "main", stOf = (fid) => { const pn = (d.pins || []).find((x) => x.id === fid); return pn && pn.contract ? pn.contract.status : null; };
+  const marks = isMain ? `<div class="mp-lm">${["running", "soon", "care", "overdue"].map((k) => `<span><svg class="mp-k" viewBox="0 0 22 12" aria-hidden="true">${stSvg(k, 11, 6)}</svg>${esc(L("st_" + k))}</span>`).join("")}</div>` : `<div class="mp-lm"><span><i class="dot bad"></i>${esc(A("w_bad"))}</span><span><i class="dot warn"></i>${esc(A("w_warn"))}</span><span><i class="dot info"></i>${esc(A("w_info"))}</span><span><i class="dot ok"></i>${esc(L("w_cold"))}</span></div>`;
+  const stWord = (f) => (isMain && stOf(f.id) ? ` <em>${esc(L("st_" + stOf(f.id)))}</em>` : f.status === "planned" ? ` <em>${esc(L("st_planned"))}</em>` : f.status === "in_progress" ? ` <em>${esc(L("st_in_progress"))}</em>` : "") + (f.region ? ` <em>${esc(L("region"))}</em>` : "");
+  const numbered = nums.length ? `<ol class="mp-nl">${nums.map((f, i) => `<li data-mp-f="${esc(f.id)}" class="${f.id === ST.sel[co] ? "on" : ""}"><b>${i + 1}</b><span>${esc(nameOf(f, lang))}${stWord(f)}</span></li>`).join("")}</ol>` : "";
+  // the contracts with no place (city-wide), never a guessed point
+  const un = isMain && sh.site === "tbilisi" && (d.unplaced || []).length ? `<div class="mp-un"><div class="mp-l">${esc(lab(L("no_addr"), lang))}</div>${d.unplaced.map((c) => `<div class="mp-kv" data-mp-c="${esc(c.id)}"><span>${esc(cutT(c.subject, 70))}</span><b>${c.remaining != null ? esc((c.approx ? "≈ " : "") + gel(c.remaining)) : "—"}</b></div>`).join("")}</div>` : "";
+  return `<div class="mp-leg"><div class="mp-l">${esc(lab(L("legend"), lang))}</div><div class="mp-li">${items.map(([s, w]) => `<span>${s}${esc(w)}</span>`).join("")}</div>${marks}${numbered}${un}</div>`;
 }
 
 // ---------------- a tapped feature's sheet ----------------
@@ -262,7 +295,18 @@ function featureSheet(co, d) {
   const lang = DATA[co].lang, w = d.weather || {}, day = ST.day[co] || w.tonight, m = w.marks && w.marks[day] && w.marks[day][f.id];
   const rows = [];
   const kv = (k, v) => rows.push(`<div class="mp-kv"><span>${esc(k)}</span><b>${v}</b></div>`);
-  kv(L("f_kind"), esc(L("kind." + f.kind)));
+  kv(L("f_kind"), esc(L("kind." + f.kind)) + (f.region ? " · " + esc(L("region")) : ""));
+  const pn = (d.pins || []).find((x) => x.id === f.id), c = pn && pn.contract;
+  if (c) {
+    rows.push(`<div class="mp-subj">${esc(c.subject)}</div>`);
+    kv(L("f_procurer"), esc(c.procurer));
+    if (c.value) kv(L("f_value"), esc(gel(c.value)));
+    if (c.start || c.end) kv(L("f_term"), esc((c.start ? dt(c.start) + " " + c.start.slice(0, 4) : "") + " – " + (c.end ? dt(c.end) + " " + c.end.slice(0, 4) : "")));
+    if (c.remaining != null) kv(L("f_remaining"), esc((c.approx ? "≈ " : "") + gel(c.remaining)));
+    kv(L("f_status"), `<svg class="mp-k" viewBox="0 0 22 12" aria-hidden="true">${stSvg(c.status, 11, 6)}</svg> ${esc(L("st_" + c.status))}`);
+    if (c.care_until) kv(L("f_care"), esc(L("care_until", { d: dt(c.care_until) + " " + c.care_until.slice(0, 4) })) + "<br>" + esc(L("care." + (d.season || "autumn"))));
+    if ((c.deadlines || []).length) rows.push(`<div class="mp-dl"><div class="mp-l">${esc(lab(L("f_deadlines"), lang))}</div>${c.deadlines.map((r) => `<div class="mp-kv"><span>${esc(L("dl." + r.kind))}${r.note === "text" ? " · " + esc(L("dl_text")) : ""}</span><b>${esc(r.due ? dt(r.due) + " " + r.due.slice(0, 4) : "—")}</b></div>`).join("")}</div>`);
+  }
   if (f.area_m2) kv(L("f_area"), esc(f.area_m2 >= 10000 ? num(f.area_m2 / 10000, 2) + " " + L("ha") : num(f.area_m2) + " " + L("m2")));
   if (f.crop) kv(L("f_crop"), esc(A("crop." + f.crop)));
   if (f.trees) kv(L("f_trees"), esc(num(f.trees)));
@@ -296,6 +340,9 @@ function featureSheet(co, d) {
 function titleBlock(co, d, view) {
   const w = d.weather || {}, lines = [];
   if (d.company === "nursery") lines.push([L("tb_draw"), d.sources ? L("tb_draw_v_full") : L("tb_draw_v")]);
+  if (d.company === "main") lines.push([L("tb_draw"), L(ST.sheet[co] === "georgia" ? "tb_draw_ge" : "tb_draw_tb")]);
+  if (d.company === "main" && ST.sheet[co] === "georgia") lines.push([A("tb_src"), L("wx_georgia")]);
+  if (d.company === "main" && (d.pins || []).length) lines.push([L("tb_pins"), L("tb_pins_v")]);
   if (d.sources && d.features.some((f) => f.kind === "block")) lines.push([L("tb_plant"), L("tb_plant_v")]);
   if (w.state === "ok") lines.push([A("tb_src"), A("attr") + " · " + L("tb_fc", { t: w.fetched_at ? dt(String(w.fetched_at).slice(0, 10)) + " " + hhmm(w.fetched_at) : "—" })]);
   if (view === "sat") lines.push([L("tb_ortho"), L("tb_ortho_v")]);
@@ -450,6 +497,8 @@ html:not([lang="ka"]) .mp-l,html:not([lang="ka"]) .mp-sh button,html:not([lang="
 .mp-svg .tank,.mp-svg .solar{fill:var(--q-surface-2);stroke:var(--q-ink);stroke-width:1.5}
 .mp-svg .well{fill:var(--q-surface);stroke:var(--q-ink);stroke-width:1.5}.mp-svg .wc{fill:var(--q-ink)}
 .mp-svg .camera{fill:none;stroke:var(--q-ink);stroke-width:1.2}
+.mp-svg .country{fill:var(--q-surface-2);stroke:var(--q-rule);stroke-width:1.5}.mp-svg .district{fill:none;stroke:var(--q-ink-2);stroke-width:.8}.mp-svg .district.dh{stroke:var(--q-ink);stroke-width:1.2}.mp-svg .pd{fill:var(--q-viz-fill)}
+.mp-svg .pin_site{fill:var(--q-main);stroke:var(--q-ink);stroke-width:1.5}.mp-svg .pin_contract{fill:var(--q-ink);stroke:var(--q-surface);stroke-width:1.5}
 .mp-svg .pln{fill:none!important;stroke:var(--q-ink);stroke-width:1.5;stroke-dasharray:4 3}
 .mp-svg .ring{fill:none;stroke:var(--q-ink);stroke-width:1.2}.mp-svg .bchk{fill:none;stroke:var(--q-ink);stroke-width:2}
 .mp-svg .sel{stroke:var(--q-accent)!important;stroke-width:2.5!important}
@@ -470,6 +519,8 @@ html:not([lang="ka"]) .mp-l,html:not([lang="ka"]) .mp-sh button,html:not([lang="
 .mp-k .parcel{fill:none;stroke:var(--q-rule)}.mp-k .lease{fill:none;stroke:var(--q-ink-2);stroke-dasharray:4 2}.mp-k .servitude{fill:none;stroke:var(--q-ink-2);stroke-dasharray:2 2}
 .mp-k .building{fill:var(--q-ink);stroke:var(--q-ink)}.mp-k .block{stroke:var(--q-ink)}.mp-k .pln{fill:none;stroke:var(--q-ink);stroke-dasharray:3 2}
 .mp-k .road-o{stroke:var(--q-ink);stroke-width:4.5}.mp-k .road-i{stroke:var(--q-surface);stroke-width:2}.mp-k .river{stroke:var(--q-info);stroke-width:1.5;stroke-dasharray:5 2}
+.mp-k .district{fill:none;stroke:var(--q-ink-2);stroke-width:1}.mp-k .pin_site{fill:var(--q-main);stroke:var(--q-ink);stroke-width:1.2}.mp-k .pin_contract{fill:var(--q-ink)}
+.mp-k .mk.bad{fill:var(--q-crit)}.mp-k .mk.warn{fill:var(--q-warn)}.mp-k .mk.info{fill:var(--q-surface);stroke:var(--q-info);stroke-width:1.5}.mp-k .mk.okk{fill:none;stroke:var(--q-good);stroke-width:2.2}.mp-k .pd{fill:var(--q-viz-fill)}
 .mp-k .well{fill:var(--q-surface);stroke:var(--q-ink);stroke-width:1.3}.mp-k .wc{fill:var(--q-ink)}.mp-k .ring{fill:none;stroke:var(--q-ink)}.mp-k .bchk{fill:none;stroke:var(--q-ink);stroke-width:2}
 .mp-lm{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:6px;font-size:12px;line-height:16px;color:var(--q-ink-2)}.mp-lm span{display:inline-flex;align-items:center;gap:6px}.mp-lm .dot{transform:scale(.85)}.mp-lm .dot.bad{transform:rotate(45deg) scale(.62)}.mp-lm .dot.ok{transform:rotate(45deg) scale(.85)}
 .mp-nl{list-style:none;margin:8px 0 0;padding:0;border-top:1px solid var(--q-rule-light);display:grid;grid-template-columns:1fr 1fr;column-gap:12px}
@@ -482,6 +533,7 @@ html:not([lang="ka"]) .mp-l,html:not([lang="ka"]) .mp-sh button,html:not([lang="
 .mp-st.planned,.mp-st.in_progress{color:var(--q-warn)}.mp-st.built,.mp-st.partial{color:var(--q-good)}
 .mp-spark{display:inline-flex;align-items:flex-end;gap:2px;height:26px;margin-left:8px}.mp-spark i{width:5px;background:var(--q-viz-fill)}
 .mp-prov{margin-top:6px;padding:6px 8px;background:var(--q-surface-2);font-size:12.5px;line-height:17px;color:var(--q-ink-2)}
+.mp-subj{padding:6px 0 8px;font-size:13px;line-height:18px;color:var(--q-ink)}.mp-dl,.mp-un{margin-top:8px}.mp-un .mp-kv{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-top:1px solid var(--q-rule-light);font-size:12.5px;line-height:17px}.mp-un .mp-kv b{white-space:nowrap;font-weight:600}
 .mp-src{margin:6px 0 10px;font-size:11.5px;line-height:16px;color:var(--q-muted);word-break:break-word}
 .mp-x{min-width:44px;min-height:44px;border:1.5px solid var(--q-rule);border-radius:0;background:var(--q-surface);color:var(--q-ink);font:700 14px/1 var(--ff);cursor:pointer}
 .mp-tb{margin:0 12px 12px;border:1.5px solid var(--q-rule);font-size:12px;line-height:16px;color:var(--q-ink-2)}

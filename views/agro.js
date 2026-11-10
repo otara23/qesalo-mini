@@ -16,7 +16,7 @@
 // 5 water: ET0 against rain, the balance, the almond's line April-October. 6 disease weather: wet hours against the
 // rules' 4 h / 12 h. 7 the weekly advisory (never the investor's). 8 the warnings sent. 9 the title block.
 // Who sees which effect: the function sends only the kinds the matrix routes to the person (the investor: frost).
-import { t, esc, num, dt } from "../ui.js?v=fd10a8c.202611101337";
+import { t, esc, num, dt } from "../ui.js?v=c340a6e.202611101355";
 
 const L = (k, p) => t("agro." + k, p);
 const MINUS = "−";

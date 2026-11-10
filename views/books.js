@@ -9,8 +9,8 @@
 // schema/034a + 034b; the main company's months before 1.01.2023 show a balance only for classes 6-9), so the main
 // company's matrix note is the nursery's (m_note_main said 1-5 had no balance). A view of the books - nothing here
 // judges a line.
-import { t, esc, num, gel, dt, card, row, stat } from "../ui.js?v=fd10a8c.202611101337";
-import { section, accountRow, keyOf, isOpen, slot, moreOf, drillCss, cpt, monShort, amt, redrawView } from "./drill-ui.js?v=fd10a8c.202611101337";
+import { t, esc, num, gel, dt, card, row, stat } from "../ui.js?v=c340a6e.202611101355";
+import { section, accountRow, keyOf, isOpen, slot, moreOf, drillCss, cpt, monShort, amt, redrawView } from "./drill-ui.js?v=c340a6e.202611101355";
 
 const L = (k, p) => t("books." + k, p);
 const V = { side: "d" };   // the matrix reading: d = debit turnover, c = credit turnover
