@@ -6,7 +6,7 @@
 // nothing is fetched before a tap. The data: mini/functions/mini/drill.ts (walls, masking, exactness are decided there).
 // Design C: rows on one sheet, a 3 px ink rule marks the open level (no indentation - the phone is narrow), condensed
 // tabular figures, nothing eases (90 ms two-frame steps), 44 px targets.
-import { t, esc, num, dt, caps, SYM } from "../ui.js?v=7a1500c.202611101912";
+import { t, esc, num, dt, caps, SYM } from "../ui.js?v=ecad6c0.202611101959";
 
 const L = (k, p) => t("drill." + k, p);
 const MINUS = "−";
