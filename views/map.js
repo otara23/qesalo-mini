@@ -10,8 +10,8 @@
 // feature's sheet; 6 the title block (only the sources on screen).
 // The investor (the nursery's): map.ts sends only his rows, names in Russian / English, no code, no source, no
 // provisional word - this file prints the provisional lines only when the data carries them (admin and masters).
-import { t, esc, num, dt, mt, caps } from "../ui.js?v=8fb6967.202611101304";
-import { effects } from "./agro.js?v=8fb6967.202611101304";
+import { t, esc, num, dt, mt, caps } from "../ui.js?v=ed7cbe0.202611101313";
+import { effects } from "./agro.js?v=ed7cbe0.202611101313";
 
 const L = (k, p) => t("map." + k, p);
 const A = (k, p) => t("agro." + k, p);
@@ -229,7 +229,7 @@ function band(co, d) {
 }
 
 // ---------------- the legend ----------------
-function legend(co, d, sh, nums) {
+function legend(co, d, sh, nums, view) {
   const lang = DATA[co].lang, feats = d.features.filter((f) => f.site === sh.site && (sh.id !== "yard" || inBox(f, sh.bbox)));
   const has = (k, fn = () => true) => feats.some((f) => f.kind === k && fn(f));
   const sw = (cls, extra = "") => `<svg class="mp-k" viewBox="0 0 22 12" aria-hidden="true">${extra || `<rect class="${cls}" x="1" y="1" width="20" height="10"/>`}</svg>`;
@@ -238,8 +238,12 @@ function legend(co, d, sh, nums) {
   if (has("parcel")) items.push([sw("parcel"), L("leg_parcel")]);
   if (has("lease")) items.push([sw("lease"), L("leg_lease")]);
   if (has("servitude")) items.push([sw("servitude"), L("leg_serv")]);
-  for (const c of ["almond", "pomegranate", "cypress"]) if (has("block", (f) => f.crop === c)) items.push([pat(PAT[c]), L("leg_" + c)]);
-  if (has("yard")) items.push([pat("hx"), L("leg_yard")]);
+  // on the photo the orchards are their parcels and the beds a dotted line; on the plan each crop has its hatch
+  if (view === "sat") { if (has("block", (f) => f.crop === "cypress")) items.push([sw("", `<rect class="servitude" x="1" y="1" width="20" height="10"/>`), L("leg_cypress")]); }
+  else {
+    for (const c of ["almond", "pomegranate", "cypress"]) if (has("block", (f) => f.crop === c)) items.push([pat(PAT[c]), L("leg_" + c)]);
+    if (has("yard")) items.push([pat("hx"), L("leg_yard")]);
+  }
   if (has("building", (f) => f.status !== "planned")) items.push([sw("building"), L("leg_building")]);
   if (has("road")) items.push([sw("", `<path class="road-o" d="M1,6H21"/><path class="road-i" d="M1,6H21"/>`), L("leg_road")]);
   if (has("river")) items.push([sw("", `<path class="river" d="M1,6H21"/>`), L("leg_river")]);
@@ -307,8 +311,10 @@ function render(co) {
   if (!ST.sheet[co] || !sheets.some((s) => s.id === ST.sheet[co])) ST.sheet[co] = sheets[0] ? sheets[0].id : null;
   const view = ST.view[co] || "plan";
   const title = d.company === "main" ? L("title_m") : L("title_n");
-  const seg = `<div class="mp-seg" role="group"><button class="${view === "plan" ? "on" : ""}" data-mp-view="plan">${esc(lab(L("v_plan"), lang))}</button></div>`;
-  let s = `<div class="card mp-c"><div class="card-h"><div class="card-t">${esc(title)}</div><div class="card-n">${seg}</div></div>`;
+  const cell = (k, on, attr) => `<button class="${on ? "on" : ""}" ${attr} aria-pressed="${!!on}">${esc(lab(L(k), lang))}</button>`;
+  const seg = `<div class="mp-seg" role="group">${cell("v_plan", view === "plan", `data-mp-view="plan"`)}${cell("v_sat", view === "sat", `data-mp-view="sat"`)}`
+    + `${view === "sat" && d.company === "nursery" ? cell("v_ndvi", ST.ndvi[co], `data-mp-ndvi="1"`) : ""}</div>`;
+  let s = `<div class="card mp-c"><div class="card-h"><div class="card-t">${esc(title)}</div></div>${seg}`;
   s += band(co, d);
   if (d.state !== "ok" || !sheets.length) {
     s += `<div class="empty">${esc(L("empty_feat"))}</div></div>`;
@@ -319,10 +325,38 @@ function render(co) {
   const W = Math.max(300, Math.min(560, (typeof window !== "undefined" ? window.innerWidth : 390) - 26));
   const H = Math.round(Math.max(300, Math.min(460, W * 0.62 * 1.25)));
   const { svg, nums } = plan(co, d, sh, W, H);
-  s += `<div class="mp-sheet" style="height:${H * (100 / W)}vw;max-height:${H}px">${svg}</div>`;
-  s += legend(co, d, sh, nums) + `</div>`;
-  s += featureSheet(co, d);
+  NUMS[co] = new Map(nums.map((f, i) => [f.id, i + 1]));
+  if (view === "sat") {
+    s += `<div class="mp-sheet mp-sat" data-mp-satbox="${co}" style="height:${Math.round(H * 1.1) * (100 / W)}vw;max-height:${Math.round(H * 1.1)}px"></div>`
+      + `<div class="mp-satnote" hidden>${esc(L("sat_fail"))}</div>` + (d.company === "nursery" ? ndviNote(d, ST.ndvi[co]) : "");
+  } else s += `<div class="mp-sheet" style="height:${H * (100 / W)}vw;max-height:${H}px">${svg}</div>`;
+  s += legend(co, d, sh, nums, view) + `</div>`;
+  s += `<div class="mp-fsw">${featureSheet(co, d)}</div>`;
   return s + titleBlock(co, d, view);
+}
+const NUMS = {};
+
+// the NDVI cell's chip and ramp legend: the scene's date and cloud cover; a cloudy month says when the last clear one was
+function ndviNote(d, on) {
+  if (!on) return "";
+  const nd = d.ndvi || {}, im = nd.image, last = nd.last;
+  if (im) return `<div class="mp-ndvi-on"><div class="mp-chip">${esc(L("ndvi_chip", { d: dt(im.day), c: num(im.cloud_pct ?? 0) }))}</div>`
+    + `<div class="mp-ramp"><span>${esc(L("ndvi_lo"))}</span><i class="r1"></i><i class="r2"></i><i class="r3"></i><i class="r4"></i><i class="r5"></i><span>${esc(L("ndvi_hi"))}</span></div>`
+    + `<div class="mp-rampn"><b>0,1</b><b>0,3</b><b>0,5</b><b>0,7</b></div></div>`;
+  return `<div class="mp-ndvi-none">${esc(last ? L("ndvi_cloudy", { d: dt(last.day) }) : L("ndvi_none"))}</div>`;
+}
+
+// the satellite paper (views/map-sat.js, loaded on the first press - never in the default path)
+let SAT = null, RELOAD = null;
+const satMod = () => (SAT = SAT || import(new URL("./map-sat.js" + new URL(import.meta.url).search, import.meta.url).href));
+function drawSat(el, co) {
+  const box = el.querySelector(`[data-mp-satbox="${co}"]`);
+  if (!box || !DATA[co]) return;
+  const { d, lang } = DATA[co], sh = sheetsOf(d).find((x) => x.id === ST.sheet[co]);
+  const day = ST.day[co] || (d.weather && d.weather.tonight), marks = (d.weather && d.weather.marks && d.weather.marks[day]) || {};
+  satMod().then((m) => m.draw(box, { co, d, sheet: sh, lang, ndvi: !!ST.ndvi[co], sel: ST.sel[co], marks, nums: NUMS[co],
+    onTap: (id) => { ST.sel[co] = ST.sel[co] === id ? null : id; const w = el.querySelector(`.mp[data-mp="${co}"] .mp-fsw`); if (w) { w.innerHTML = featureSheet(co, d); caps(w); const fs = w.querySelector(".mp-fs"); if (fs) fs.scrollIntoView({ block: "nearest", behavior: "smooth" }); } } }))
+    .catch(() => { const n = box.parentNode && box.parentNode.querySelector(".mp-satnote"); if (n) n.hidden = false; });
 }
 
 export default function view(d, me, _t, company) {
@@ -338,9 +372,12 @@ function redraw(el, co) {
   if (!box || !DATA[co]) return;
   box.innerHTML = render(co);
   caps(box);
+  if (ST.view[co] === "sat") drawSat(el, co);
 }
 
-export function mount(el) {
+export function mount(el, o) {
+  RELOAD = (o && o.reload) || RELOAD;
+  for (const box of el.querySelectorAll(".mp[data-mp]")) if (ST.view[box.dataset.mp] === "sat") drawSat(el, box.dataset.mp);
   if (el.__mpBound) return;
   el.__mpBound = true;
   el.addEventListener("click", (e) => {
@@ -351,7 +388,18 @@ export function mount(el) {
     const day = e.target.closest("[data-mp-day]"), sh = e.target.closest("[data-mp-sheet]"), f = e.target.closest("[data-mp-f]"), v = e.target.closest("[data-mp-view]");
     if (day) { ST.day[co] = day.dataset.mpDay; hap(); return redraw(el, co); }
     if (sh) { ST.sheet[co] = sh.dataset.mpSheet; hap(); return redraw(el, co); }
-    if (v) { ST.view[co] = v.dataset.mpView; hap(); return redraw(el, co); }
+    const nd = e.target.closest("[data-mp-ndvi]");
+    if (nd) {
+      ST.ndvi[co] = !ST.ndvi[co]; hap();
+      // the image comes only when asked (params() asks while the cell is pressed): the first press loads the tab again
+      if (ST.ndvi[co] && !(DATA[co].d.ndvi && DATA[co].d.ndvi.image) && DATA[co].d.ndvi && DATA[co].d.ndvi.last && RELOAD) return RELOAD(params());
+      return redraw(el, co);
+    }
+    if (v) {
+      const was = ST.view[co] || "plan"; ST.view[co] = v.dataset.mpView; hap();
+      if (was === "sat" && ST.view[co] !== "sat" && SAT) SAT.then((m) => m.leave(co));
+      return redraw(el, co);
+    }
     if (f) {
       const id = f.dataset.mpF;
       ST.sel[co] = !id || ST.sel[co] === id ? null : id; hap(); redraw(el, co);
@@ -367,7 +415,7 @@ function css() {
   st.textContent = `
 .mp-l{font:600 11px/14px var(--ff);font-stretch:75%;letter-spacing:.09em;color:var(--q-muted)}
 html:not([lang="ka"]) .mp-l,html:not([lang="ka"]) .mp-sh button,html:not([lang="ka"]) .mp-seg button,html:not([lang="ka"]) .mp-days b{text-transform:uppercase}
-.mp-seg{display:flex;border:3px solid var(--q-rule);background:var(--q-surface)}
+.mp-seg{display:flex;margin:0 0 10px;border:3px solid var(--q-rule);background:var(--q-surface)}.mp-seg button{flex:1 1 0}
 .mp-seg button,.mp-sh button{min-height:44px;min-width:44px;padding:0 10px;border:0;border-radius:0;background:var(--q-surface);font:700 11.5px/14px var(--ff);font-stretch:75%;letter-spacing:.06em;color:var(--q-ink);cursor:pointer}
 .mp-seg button+button,.mp-sh button+button{border-left:1.5px solid var(--q-rule)}
 .mp-seg button.on,.mp-sh button.on{background:var(--q-invert);color:var(--q-on-invert)}
@@ -382,7 +430,7 @@ html:not([lang="ka"]) .mp-l,html:not([lang="ka"]) .mp-sh button,html:not([lang="
 .mp-days button+button{border-left:1px solid var(--q-rule-light)}
 .mp-days b{font:700 10px/12px var(--ff);font-stretch:75%;letter-spacing:.04em;color:var(--q-ink-2)}.mp-days span{font:800 14px/15px var(--ff);font-stretch:62.5%}
 .mp-days em{font:700 11px/12px var(--ff);font-stretch:75%;font-style:normal}.mp-days em.lo{color:var(--q-ink-2)}
-.mp-days>button>i{height:14px;display:flex;align-items:center;font-style:normal;color:var(--q-muted)}.mp-days .dot{transform:scale(.8)}.mp-days .dot.bad{transform:rotate(45deg) scale(.6)}
+.mp-days>button>i{height:14px;display:flex;align-items:center;font-style:normal;color:var(--q-muted)}.mp-days .dot{transform:scale(.8)}.mp-days .dot.bad{transform:rotate(45deg) scale(.6)}.mp-days .dot.ok{transform:rotate(45deg) scale(.8)}
 .mp-days button.on{background:var(--q-invert);color:var(--q-on-invert)}.mp-days button.on b,.mp-days button.on em.lo{color:var(--q-on-invert)}
 .mp-cap{padding:5px 10px 6px;border-top:1px solid var(--q-rule-light);font-size:11.5px;line-height:15px;color:var(--q-muted)}
 .mp-sh{display:flex;border:1.5px solid var(--q-rule);border-bottom:0;width:max-content;max-width:100%}
@@ -423,14 +471,14 @@ html:not([lang="ka"]) .mp-l,html:not([lang="ka"]) .mp-sh button,html:not([lang="
 .mp-k .building{fill:var(--q-ink);stroke:var(--q-ink)}.mp-k .block{stroke:var(--q-ink)}.mp-k .pln{fill:none;stroke:var(--q-ink);stroke-dasharray:3 2}
 .mp-k .road-o{stroke:var(--q-ink);stroke-width:4.5}.mp-k .road-i{stroke:var(--q-surface);stroke-width:2}.mp-k .river{stroke:var(--q-info);stroke-width:1.5;stroke-dasharray:5 2}
 .mp-k .well{fill:var(--q-surface);stroke:var(--q-ink);stroke-width:1.3}.mp-k .wc{fill:var(--q-ink)}.mp-k .ring{fill:none;stroke:var(--q-ink)}.mp-k .bchk{fill:none;stroke:var(--q-ink);stroke-width:2}
-.mp-lm{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:6px;font-size:12px;line-height:16px;color:var(--q-ink-2)}.mp-lm span{display:inline-flex;align-items:center;gap:6px}.mp-lm .dot{transform:scale(.85)}.mp-lm .dot.bad{transform:rotate(45deg) scale(.62)}
+.mp-lm{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:6px;font-size:12px;line-height:16px;color:var(--q-ink-2)}.mp-lm span{display:inline-flex;align-items:center;gap:6px}.mp-lm .dot{transform:scale(.85)}.mp-lm .dot.bad{transform:rotate(45deg) scale(.62)}.mp-lm .dot.ok{transform:rotate(45deg) scale(.85)}
 .mp-nl{list-style:none;margin:8px 0 0;padding:0;border-top:1px solid var(--q-rule-light);display:grid;grid-template-columns:1fr 1fr;column-gap:12px}
 .mp-nl li{display:flex;gap:8px;align-items:center;min-height:44px;min-width:0;border-bottom:1px solid var(--q-rule-light);font-size:13px;line-height:17px;cursor:pointer}
 .mp-nl li b{flex:none;width:20px;height:20px;display:flex;align-items:center;justify-content:center;background:var(--q-invert);color:var(--q-on-invert);font:800 11px/1 var(--ff)}
 .mp-nl li span{min-width:0;overflow-wrap:anywhere;font-size:12.5px;line-height:16px}.mp-nl li.on b{background:var(--q-accent)}.mp-nl em{font-style:normal;color:var(--q-muted);font-size:12px}
 .mp-fs .mp-kv{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-top:1px solid var(--q-rule-light);font-size:13px;line-height:18px}
 .mp-fs .mp-kv span{color:var(--q-muted)}.mp-fs .mp-kv b{font-weight:600;text-align:right;display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
-.mp-fs .mp-kv .dot{transform:scale(.85)}.mp-fs .mp-kv .dot.bad{transform:rotate(45deg) scale(.62)}
+.mp-fs .mp-kv .dot{transform:scale(.85)}.mp-fs .mp-kv .dot.bad{transform:rotate(45deg) scale(.62)}.mp-fs .mp-kv .dot.ok{transform:rotate(45deg) scale(.85)}
 .mp-st.planned,.mp-st.in_progress{color:var(--q-warn)}.mp-st.built,.mp-st.partial{color:var(--q-good)}
 .mp-spark{display:inline-flex;align-items:flex-end;gap:2px;height:26px;margin-left:8px}.mp-spark i{width:5px;background:var(--q-viz-fill)}
 .mp-prov{margin-top:6px;padding:6px 8px;background:var(--q-surface-2);font-size:12.5px;line-height:17px;color:var(--q-ink-2)}

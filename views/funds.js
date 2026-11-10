@@ -9,7 +9,7 @@
 // scale), the months (the farm purchase in its own cell before the strip, never inside it), the deal frame as pitched
 // (no receipts, no captions), the title block. No review queue, no confidence, no „წინასწარი", no hatch encoding (Otar
 // 10.11). Styles are this view's own (.inv-*), on the page's tokens, light and dark.
-import { esc, gel, num, dt, card, stat, mt, lang } from "../ui.js?v=8fb6967.202611101304";
+import { esc, gel, num, dt, card, stat, mt, lang } from "../ui.js?v=ed7cbe0.202611101313";
 // W-I18N: a purpose in the language on screen (the function sends ka / ru / en, written by lib/invest after the wall), else ka
 const said = (i) => (i && (i[lang()] || i.ka)) || "";
 

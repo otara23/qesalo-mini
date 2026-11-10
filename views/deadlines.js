@@ -1,6 +1,6 @@
 // ვადები (both companies; wave polish1 - the bot's „ვადები" card of featA, the whole list): within 90 days, later, open
 // items; kind, source and days left; 14 days flagged. The `mini` function did the card's arithmetic.
-import { t, esc, num, gel, card, row, stat, monthName, dy, until, daysIn, quotes, calTitle } from "../ui.js?v=8fb6967.202611101304";
+import { t, esc, num, gel, card, row, stat, monthName, dy, until, daysIn, quotes, calTitle } from "../ui.js?v=ed7cbe0.202611101313";
 
 export default function view(d) {
   const main = d.company === "main", dated = d.dated || [], open = d.open || [];
