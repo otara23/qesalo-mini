@@ -1,5 +1,5 @@
 // გადასახადები (the nursery): the rs.ge tax card vs the books, input VAT by month.
-import { t, num, gel, dt, card, row } from "../ui.js?v=87c193d.202611101907";
+import { t, num, gel, dt, card, row } from "../ui.js?v=7a1500c.202611101912";
 
 export default function view(d) {
   const tx = d.tax || {}; const v = d.vat || [];

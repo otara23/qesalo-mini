@@ -9,8 +9,8 @@
 // schema/034a + 034b; the main company's months before 1.01.2023 show a balance only for classes 6-9), so the main
 // company's matrix note is the nursery's (m_note_main said 1-5 had no balance). A view of the books - nothing here
 // judges a line.
-import { t, tOr, lang, esc, num, gel, dt, card, row, stat } from "../ui.js?v=87c193d.202611101907";
-import { section, accountRow, keyOf, isOpen, slot, moreOf, drillCss, cpt, monShort, amt, redrawView } from "./drill-ui.js?v=87c193d.202611101907";
+import { t, tOr, lang, esc, num, gel, dt, card, row, stat } from "../ui.js?v=7a1500c.202611101912";
+import { section, accountRow, keyOf, isOpen, slot, moreOf, drillCss, cpt, monShort, amt, redrawView } from "./drill-ui.js?v=7a1500c.202611101912";
 
 const L = (k, p) => t("books." + k, p);
 const V = { side: "d" };   // the matrix reading: d = debit turnover, c = credit turnover
@@ -23,7 +23,9 @@ function nursery(d) {
   // under „ბოლოს შეყვანილი", as the main company's does (main() below)
   let s = `<div class="grid2">${stat(t("books.last_entry"), dt(l.last_entry_date), "ORIS")}${stat(t("books.entered"), dt(l.last_entered_on), l.days_since_entry != null ? t("books.days_ago", { n: l.days_since_entry }) : "")}</div>`;
   s += card(t("books.new_30"), "", row(t("books.added"), "", num(d.added)));
-  s += card(t("books.recent"), (d.recent || []).length, (d.recent || []).map((r) => row(`<span class="mono">${esc(r.debit)} → ${esc(r.credit)}</span>`, dt(r.entry_date) + (r.doc ? " · " + esc(r.doc) : ""), gel(r.amount_gel, 2))).join(""));
+  // the 15 newest lines are Otar's (matrix field books.recent): for everyone else the function sends none, so no card -
+  // an empty „ბოლო გატარებები" heading read as a broken list under /as (debug-1011, seen as Zaza 10.11)
+  if ((d.recent || []).length) s += card(t("books.recent"), (d.recent || []).length, (d.recent || []).map((r) => row(`<span class="mono">${esc(r.debit)} → ${esc(r.credit)}</span>`, dt(r.entry_date) + (r.doc ? " · " + esc(r.doc) : ""), gel(r.amount_gel, 2))).join(""));
   return s + matrix(d, "nursery") + compare(d);
 }
 
