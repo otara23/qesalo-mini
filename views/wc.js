@@ -5,8 +5,8 @@
 // account opens to its months and lines (./drill-ui.js; a supplier's lines read as debt: + = owed more). The 18.06
 // purchase debt (3 1 10 26) is not in the payables by the standing ruling, and says so. The main company: after its
 // chart of accounts is checked (§3.5). A view of the books - nothing here judges an account.
-import { t, esc, num, gel, dt, card, row } from "../ui.js?v=ed7cbe0.202611101313";
-import { section, accountRow, keyOf, isOpen, drillCss, amt, toggleLocal } from "./drill-ui.js?v=ed7cbe0.202611101313";
+import { t, esc, num, gel, dt, card, row } from "../ui.js?v=fd10a8c.202611101337";
+import { section, accountRow, keyOf, isOpen, drillCss, amt, toggleLocal } from "./drill-ui.js?v=fd10a8c.202611101337";
 
 const L = (k, p) => t("wc." + k, p);
 // the order and words of today's tab; payables read as a positive debt

@@ -10,8 +10,8 @@
 // feature's sheet; 6 the title block (only the sources on screen).
 // The investor (the nursery's): map.ts sends only his rows, names in Russian / English, no code, no source, no
 // provisional word - this file prints the provisional lines only when the data carries them (admin and masters).
-import { t, esc, num, dt, mt, caps } from "../ui.js?v=ed7cbe0.202611101313";
-import { effects } from "./agro.js?v=ed7cbe0.202611101313";
+import { t, esc, num, dt, mt, caps } from "../ui.js?v=fd10a8c.202611101337";
+import { effects } from "./agro.js?v=fd10a8c.202611101337";
 
 const L = (k, p) => t("map." + k, p);
 const A = (k, p) => t("agro." + k, p);
@@ -267,7 +267,7 @@ function featureSheet(co, d) {
   if (f.crop) kv(L("f_crop"), esc(A("crop." + f.crop)));
   if (f.trees) kv(L("f_trees"), esc(num(f.trees)));
   if (f.planted_year) kv(L("f_planted"), esc(String(f.planted_year)));
-  if (f.status) kv(L("f_status"), `<span class="mp-st ${f.status}">${esc(L("st_" + f.status))}</span>${f.built_on ? " · " + esc(dt(f.built_on)) : ""}`);
+  if (f.status && f.kind !== "block") kv(L("f_status"), `<span class="mp-st ${f.status}">${esc(L("st_" + f.status))}</span>${f.built_on ? " · " + esc(dt(f.built_on)) : ""}`);
   if (f.irrigation) kv(L("f_irr"), esc(L("irr_" + f.irrigation)));
   // the crop's stage (the agro tab's), the day's frost margin and verdict
   const stg = f.crop && (w.stages || []).find((s) => s.crop === f.crop);
@@ -341,8 +341,8 @@ function ndviNote(d, on) {
   if (!on) return "";
   const nd = d.ndvi || {}, im = nd.image, last = nd.last;
   if (im) return `<div class="mp-ndvi-on"><div class="mp-chip">${esc(L("ndvi_chip", { d: dt(im.day), c: num(im.cloud_pct ?? 0) }))}</div>`
-    + `<div class="mp-ramp"><span>${esc(L("ndvi_lo"))}</span><i class="r1"></i><i class="r2"></i><i class="r3"></i><i class="r4"></i><i class="r5"></i><span>${esc(L("ndvi_hi"))}</span></div>`
-    + `<div class="mp-rampn"><b>0,1</b><b>0,3</b><b>0,5</b><b>0,7</b></div></div>`;
+    + `<div class="mp-ramp"><span>${esc(L("ndvi_lo"))}</span><div class="mp-rb"><i class="r1"></i><i class="r2"></i><i class="r3"></i><i class="r4"></i><i class="r5"></i>`
+    + [0.1, 0.3, 0.5, 0.7].map((v, i) => `<b style="left:${(i + 1) * 20}%">${esc(num(v, 1))}</b>`).join("") + `</div><span>${esc(L("ndvi_hi"))}</span></div></div>`;
   return `<div class="mp-ndvi-none">${esc(last ? L("ndvi_cloudy", { d: dt(last.day) }) : L("ndvi_none"))}</div>`;
 }
 

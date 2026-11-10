@@ -1,5 +1,5 @@
 // იმპორტი (the main company; the bot's card M6): the current year's customs declarations.
-import { t, tOr, esc, num, gel, dt, card, row, stat } from "../ui.js?v=ed7cbe0.202611101313";
+import { t, tOr, esc, num, gel, dt, card, row, stat } from "../ui.js?v=fd10a8c.202611101337";
 
 export default function view(d) {
   const R = d.registers || [], last = R.map((r) => r.last_reg_date).sort().pop();

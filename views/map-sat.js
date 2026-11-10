@@ -8,7 +8,7 @@
 // cells „+ −"; Telegram's swipe-to-close off while this view is on (Telegram.WebApp.disableVerticalSwipes) and back on
 // when it goes. Tile failures: after 6 errors the note „ორთოფოტო ამჟამად მიუწვდომელია" and the lines stay on the paper.
 // NDVI (the farm): L.imageOverlay of the function's PNG in its own pane, above the imagery, below the lines.
-import { t, esc } from "../ui.js?v=ed7cbe0.202611101313";
+import { t, esc } from "../ui.js?v=fd10a8c.202611101337";
 
 const L_ = (k, p) => t("map." + k, p);
 export const LEAFLET = {
@@ -140,10 +140,9 @@ function css() {
 .mp-zoom button{width:44px;height:44px;border:0;border-radius:0;background:var(--q-surface);color:var(--q-ink);font:800 20px/1 var(--ff);cursor:pointer}.mp-zoom button+button{border-top:1.5px solid var(--q-rule)}
 .mp-satnote{padding:6px 10px;border:1.5px solid var(--q-rule);border-top:0;background:var(--q-warn-bg);color:var(--q-warn);font:600 12.5px/17px var(--ff)}
 .mp-chip{display:inline-block;margin:8px 0 6px;padding:3px 8px;border:1.5px solid var(--q-rule);font:600 12px/16px var(--ff)}
-.mp-ramp{display:flex;align-items:center;gap:0;font-size:11.5px;color:var(--q-ink-2)}.mp-ramp span{padding:0 6px}.mp-ramp i{flex:1 1 0;height:12px;border:1px solid var(--q-rule)}.mp-ramp i+i{border-left:0}
+.mp-ramp{display:flex;align-items:flex-start;gap:0;padding-bottom:18px;font-size:11.5px;line-height:14px;color:var(--q-ink-2)}.mp-ramp span{padding:0 6px}.mp-rb{position:relative;flex:1 1 auto;display:flex}.mp-ramp i{flex:1 1 0;height:14px;border:1px solid var(--q-rule)}.mp-ramp i+i{border-left:0}.mp-rb b{position:absolute;top:16px;transform:translateX(-50%);font-weight:600;color:var(--q-muted)}
 /* the NDVI ramp = kbtools/ndvi.py RAMP (the PNG is painted with these; a field layer with its legend, fixed by the image, not a theme colour) */
 .mp-ramp .r1{background:#A5602A}.mp-ramp .r2{background:#D9B36A}.mp-ramp .r3{background:#E8E6A0}.mp-ramp .r4{background:#8CC265}.mp-ramp .r5{background:#2E7D32}
-.mp-rampn{display:flex;justify-content:space-around;padding:2px 52px 0;font-size:11px;color:var(--q-muted)}.mp-rampn b{font-weight:600}
 .mp-ndvi-none{margin:8px 0 4px;font-size:12.5px;line-height:17px;color:var(--q-muted)}
 `;
   document.head.appendChild(st);
