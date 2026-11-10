@@ -1,7 +1,13 @@
-// მოგება (wave W-PNL, plans/bot-v3.md §3.3, 9.11.2026): one company's revenue and expense for a period, from the books
-// (ORIS; schema/030 v_pnl_lines) or, as the second reading, from the rs.ge invoices - a toggle, never a sum. The data:
-// mini/functions/mini/pnl.ts (the rows a person may not see are dropped there before anything is summed; the investor
-// gets the categories only, never accounts or lines).
+// მოგება (wave W-PNL, plans/bot-v3.md §3.3, 9.11.2026; otar-1011 W3 §1.7 A and §1.8, 10.11.2026): one company's revenue
+// and expense for a period, from the books (ORIS; schema/030 v_pnl_lines) - the one reading (Otar 10.11: accounting is
+// the single source of truth; the rs.ge switch, the „books lag" banner, the pending note and the rule block are gone).
+// The data: mini/functions/mini/pnl.ts (the rows a person may not see are dropped there before anything is summed).
+//
+// Otar 10.11 („where the money went", plain words): under the hero and the chart, „სად წავიდა ფული" - the plain
+// categories of lib/pnl-categories.json ranked by amount with their share of the expense, one segmented bar above them
+// (numbered as on a plan, ≤ 6 segments, the rest together); „საიდან შემოვიდა" - the revenue the same way; „შედეგი" - the
+// ladder in plain words. A category opens to its sub-categories (name · amount · %) and, for the admin, masters and the
+// accountant, its 15 newest entries (date · who · amount). No account code, no entry count, no document anywhere.
 //
 // Design C „ნახაზი": one framed sheet of cells; the filter row first (it scopes everything under it); the result as the
 // one big figure; revenue = solid ink, expense = ink hatch at 45° (texture + legend + labels carry identity, never colour);
@@ -9,17 +15,16 @@
 // zero radius except the plan's numbered circles; a table twin under every chart; nothing eases (90 ms two-frame steps).
 // While the result includes work in progress that is still waiting in 1 6 30, it is called „შედეგი", never „მოგება".
 //
-// The page's shell (mini/app.js) calls view() once per company section. The period, the reading, the open category and
-// the selected column live here; a change re-asks the function itself (the same endpoint and body as app.js, plus
-// `pnl: { p, r, only, d }`) and redraws #view, keeping the old sheet at reduced opacity while it loads - until app.js
-// offers the view hooks of bot-v3-pnl.md PR-2. The period is kept in the address (?tab=pnl&p=…&r=…).
-import { t, esc, num, gel, dt, tm, mt, caps, SYM, cut } from "../ui.js?v=ccf0f36.202611101216";
+// The page's shell (mini/app.js) calls view() once per company section. The period, the open category and the selected
+// column live here; a change re-asks the function itself (the same endpoint and body as app.js, plus `pnl: { p, only,
+// d }`) and redraws #view, keeping the old sheet at reduced opacity while it loads. The period is kept in the address
+// (?tab=pnl&p=…).
+import { t, esc, num, gel, dt, mt, caps, SYM, cut, lang } from "../ui.js?v=16459b0.202611101234";
 
-const API = "https://owgvoonnsccujzpbprpw.supabase.co/functions/v1/mini";   // = mini/app.js API (PR-2: a hook instead)
-const S = { me: null, secs: [], pass: false, p: null, r: null, open: {}, acct: {}, lines: {}, sel: {}, tbl: {}, custom: false, busy: false, err: null, url: false };
-const OPEX = ["cost", "selling", "admin", "writeoff", "opex_other"];
-const NONOP = ["farm_sale", "nonop_income", "nonop_expense", "fx", "nonop_other"];
-const C9 = ["tax_fines", "extraordinary"];
+const API = "https://owgvoonnsccujzpbprpw.supabase.co/functions/v1/mini";   // = mini/app.js API
+const S = { me: null, secs: [], pass: false, p: null, open: {}, lines: {}, sel: {}, tbl: {}, custom: false, busy: false, err: null, url: false };
+// a word the function sends in three languages (the plain categories, the ladder) or as ORIS writes it (a string)
+const word = (w) => (w == null ? "" : typeof w === "string" ? w : w[lang()] || w.ka || "");
 
 const L = (k, p) => t("pnl." + k, p);
 const MINUS = "−";
@@ -32,9 +37,6 @@ function cpt(v) {
   if (a >= 1e3) return s + Math.round(a / 1e3) + " " + L("u_k");
   return s + Math.round(a);
 }
-// a bank account in ORIS is named by its IBAN first: on screen the last four digits are enough (the data keeps what the
-// function sent; for non-admins it is already masked there)
-const acctName = (n) => String(n || "").replace(/\bGE\d{2}[A-Z]{2}\d{12}(\d{4})\b\s*-?\s*/g, "…$1 · ").replace(/\bGE…(\d{4})\s*-?\s*/g, "…$1 · ");
 const mon = (m) => t("mon_short")[Number(String(m).slice(5, 7)) - 1] || "";
 const ROMAN = ["I", "II", "III", "IV"];
 
@@ -103,53 +105,76 @@ function filter(d) {
     + `<label><span>${esc(L("to"))}</span><input type="month" id="pl-b" value="${P.b}" min="${P.min}" max="${P.max}"></label><button data-pl-go="1">${mt(L("show"))}</button></div>`;
   else s += `<div class="pl-step"><button data-pl-nav="${P.nav.prev || ""}" ${P.nav.prev ? "" : "disabled"} aria-label="${esc(L("prev"))}">‹</button>`
     + `<div class="l">${esc(mt(periodLabel(P)))}</div><button data-pl-nav="${P.nav.next || ""}" ${P.nav.next ? "" : "disabled"} aria-label="${esc(L("next"))}">›</button></div>`;
-  s += `<div class="pl-seg pl-rd"><button data-pl-r="books" aria-pressed="${d.reading !== "rsge"}">${mt(L("r_books"))}</button><button data-pl-r="rsge" aria-pressed="${d.reading === "rsge"}">${mt(L("r_rsge"))}</button></div></div>`;
-  return s;
+  return s + `</div>`;
 }
 
-// ---------------- the books reading ----------------
-const catOf = (d, k) => (d.cats || []).find((c) => c.key === k);
-const catAmt = (d, k) => Number((catOf(d, k) || {}).amount || 0);
+// ---------------- the books ----------------
 function hero(d) {
   const T = d.totals, wip = Number(T.wip) || 0, op = T.operating, big = Math.abs(wip) >= 1;
-  const word = big ? L("res_op") : op >= 0 ? L("profit") : L("loss");
+  const w = big ? L("res_op") : op >= 0 ? L("profit") : L("loss");
   const sub = wip >= 1 ? L("res_wip", { v: gel(wip) }) : wip <= -1 ? L("res_wip_down", { v: gel(-wip) }) : L("res_sub", { p: periodLabel(d.period) });
   return `<div class="grid2"><div class="stat"><div class="stat-l">${esc(L("revenue"))}</div><div class="stat-v">${sg(T.revenue)}</div>${Number(T.revenue) ? "" : `<div class="stat-s">${esc(L("no_sales"))}</div>`}</div>`
     + `<div class="stat"><div class="stat-l">${esc(L("expense"))}</div><div class="stat-v">${sg(T.expense)}</div></div></div>`
-    + `<div class="hero pl-res"><div class="hero-l">${esc(word)}</div><div class="hero-v">${sg(op)}</div><div class="hero-s">${esc(sub)}</div></div>`;
+    + `<div class="hero pl-res"><div class="hero-l">${esc(w)}</div><div class="hero-v">${sg(op)}</div><div class="hero-s">${esc(sub)}</div></div>`;
 }
-// o: sign (+1 revenue, -1 expense and work in progress shown as positive amounts), label, sub, pill
-function catRows(co, d, keys, total, numbered, o = {}) {
-  return keys.map((k, i) => {
-    const c = catOf(d, k); if (!c) return "";
-    const v = (o.sign ?? -1) * Number(c.amount), open = S.open[co] === k, tap = d.can && d.can.accounts;
-    const val = o.noValue ? "" : o.pill ? `<span class="pill p-warn">${gel(Math.abs(v))}</span>` : sg(v);
-    const head = `<span class="pl-k${numbered ? "" : " no"}">${numbered ? `<i class="f${i + 1}"></i><b>${i + 1}</b>` : ""}</span><span class="row-m"><span class="row-t">${esc(o.label || L("cat." + k))}</span>`
-      + `<span class="row-c">${o.sub ? esc(o.sub) + " · " : ""}${total > 0 && v > 0 ? esc(L("of_total", { p: num(100 * v / total, 1) })) + " · " : ""}${esc(L("lines_n", { n: num(c.lines) }))}</span></span><span class="row-v">${val}</span>`;
-    return tap ? `<button class="row pl-row tap${open ? " open-r" : ""}" data-pl-cat="${co}|${k}" aria-expanded="${open}">${head}<span class="chev">›</span></button>${open ? drill(co, d, c) : ""}`
-      : `<div class="row pl-row">${head}</div>`;
-  }).join("");
+// the ranked plain categories of one side; the expense gets the segmented bar above them (numbered as on a plan: the
+// first five ranked rows 1-5, every further row 6 = one segment „დანარჩენი")
+const SEG = 6;
+function ranked(co, d, side, total) {
+  const list = (d.plain && d.plain[side]) || [], pos = list.filter((c) => c.amount > 0);
+  const nOf = (c) => (side !== "exp" || !(c.amount > 0) ? 0 : Math.min(pos.indexOf(c) + 1, SEG));
+  let s = "";
+  if (side === "exp" && total > 0 && pos.length) {
+    const segs = pos.length <= SEG ? pos.map((c, i) => ({ v: c.amount, i: i + 1, w: word(c.label) }))
+      : [...pos.slice(0, SEG - 1).map((c, i) => ({ v: c.amount, i: i + 1, w: word(c.label) })), { v: pos.slice(SEG - 1).reduce((a, c) => a + c.amount, 0), i: SEG, w: L("rest") }];
+    s += `<div class="pl-sb" role="img" aria-label="${esc(segs.map((g) => g.w + " " + num(100 * g.v / total, 0) + " %").join(", "))}">`
+      + segs.map((g) => `<i class="f${g.i}" style="flex:${g.v.toFixed(2)} 1 0">${g.v / total >= 0.07 ? `<b>${g.i}</b>` : ""}</i>`).join("") + `</div>`;
+  }
+  return s + list.map((c) => catRow(co, d, side, c, nOf(c), total)).join("");
 }
-function drill(co, d, c) {
-  const sign = c.key === "revenue" || NONOP.includes(c.key) || C9.includes(c.key) ? 1 : -1;   // expense shown as a positive cost
-  const acc = c.accounts || [], cur = S.acct[co] || null;
+function catRow(co, d, side, c, n, total) {
+  const key = `${side}:${c.key}`, open = S.open[co] === key, can = !!(d.can && d.can.lines), tap = (c.sub || []).length > 1 || can;
+  const share = total > 0 && c.amount > 0 ? L(side === "exp" ? "of_exp" : "of_rev", { p: num(100 * c.amount / total, 1) }) : "";
+  const head = `<span class="pl-k${n ? "" : " no"}">${n ? `<i class="f${n}"></i><b>${n}</b>` : ""}</span><span class="row-m"><span class="row-t">${esc(word(c.label))}</span>`
+    + `${share ? `<span class="row-c">${esc(share)}</span>` : ""}</span><span class="row-v">${sg(c.amount)}</span>`;
+  return tap ? `<button class="row pl-row tap${open ? " open-r" : ""}" data-pl-cat="${co}|${side}|${esc(c.key)}" aria-expanded="${open}">${head}<span class="chev">›</span></button>${open ? drill(co, d, side, c) : ""}`
+    : `<div class="row pl-row">${head}</div>`;
+}
+// a category opened: what it is made of (sub-categories), then - admin, masters, the accountant - its 15 newest entries
+function drill(co, d, side, c) {
   let s = `<div class="pl-dr">`;
-  if (acc.length > 1) s += `<div class="pl-dh">${esc(mt(L("accounts")))}</div>` + acc.slice(0, 12).map((a) => `<button class="pl-ac${cur === a.account ? " on" : ""}" data-pl-acct="${co}|${c.key}|${esc(a.account)}" aria-pressed="${cur === a.account}">`
-    + `<span class="c">${esc(a.account)}</span><span class="n">${esc(a.name || "")}</span><span class="v">${sg(sign * a.amount)}</span></button>`).join("");
-  const key = `${co}|${c.key}|${cur || ""}|${d.period.key}`, L15 = S.lines[key];
-  const curName = cur && (acc.find((a) => a.account === cur) || {}).name;
-  s += `<div class="pl-dh">${esc(mt(cur ? L("lines_of", { a: cur + (curName ? " " + curName : "") }) : L("lines")))}</div>`;
-  if (!L15) s += `<div class="pl-ln mut">${esc(L("loading"))}</div>`;
-  else if (L15.err) s += `<div class="pl-ln mut">${esc(L("err"))} <button class="pl-more" data-pl-cat="${co}|${c.key}" data-pl-again="1">${esc(L("retry"))}</button></div>`;
-  else if (!L15.length) s += `<div class="pl-ln mut">${esc(L("no_lines"))}</div>`;
-  else s += L15.map((l) => `<div class="pl-ln"><span class="d">${esc(dt(l.day))}</span><span class="w">${esc(cut(acctName(l.other_name) || (l.account === l.debit ? l.credit : l.debit) || "", 60))}`
-    + `${l.doc ? `<small>${esc(cut(l.doc, 40))}</small>` : ""}${!cur && l.account_name ? `<small>${esc(l.account)} ${esc(cut(l.account_name, 40))}</small>` : ""}</span><span class="v">${sg(sign * l.amount, 2)}</span></div>`).join("")
-    + (L15.length >= 15 ? `<div class="pl-ln mut">${esc(L("more_lines"))}</div>` : "");
+  if ((c.sub || []).length > 1) s += `<div class="pl-dh">${esc(mt(L("subs")))}</div>` + c.sub.map((x) => `<div class="pl-sub"><span class="n">${esc(word(x.name))}</span>`
+    + `<span class="v">${sg(x.amount)}</span><span class="p">${c.amount ? num(100 * x.amount / c.amount, 1) + " %" : ""}</span></div>`).join("");
+  if (d.can && d.can.lines) {
+    const k = `${co}|${side}|${c.key}|${d.period.key}`, L15 = S.lines[k];
+    s += `<div class="pl-dh">${esc(mt(L("recent15")))}</div>`;
+    if (!L15) s += `<div class="pl-ln mut">${esc(L("loading"))}</div>`;
+    else if (L15.err) s += `<div class="pl-ln mut">${esc(L("err"))} <button class="pl-more" data-pl-cat="${co}|${side}|${esc(c.key)}" data-pl-again="1">${esc(L("retry"))}</button></div>`;
+    else if (!L15.length) s += `<div class="pl-ln mut">${esc(L("no_lines"))}</div>`;
+    else s += L15.map((l) => `<div class="pl-ln"><span class="d">${esc(dt(l.day))}</span><span class="w">${esc(l.wk ? L("who_" + l.wk) : cut(l.who || "—", 60))}</span><span class="v">${sg(l.amount, 2)}</span></div>`).join("")
+      + (L15.length >= 15 ? `<div class="pl-ln mut">${esc(L("more_lines"))}</div>` : "");
+  }
   return s + `</div>`;
 }
+// the ladder: operating result -> the other income and expense -> class 9 -> the net result; work in progress beside it
+function ladder(d) {
+  const T = d.totals, wip = Number(T.wip) || 0, P = d.plain || {};
+  const netWord = Math.abs(wip) >= 1 ? L("net") : T.net >= 0 ? L("net_profit") : L("net_loss");
+  return `<div class="card"><div class="card-h"><div class="card-t">${esc(L("ladder"))}</div><div class="card-n">${esc(periodLabel(d.period))}</div></div>`
+    + `<div class="row"><div class="row-m"><div class="row-t">${esc(L("revenue"))}</div></div><div class="row-v">${sg(T.revenue)}</div></div>`
+    + `<div class="row"><div class="row-m"><div class="row-t">${esc(L("expense"))}</div></div><div class="row-v">${sg(-T.expense)}</div></div>`
+    + `<div class="row pl-sum"><div class="row-m"><div class="row-t">${esc(L("res_op"))}</div></div><div class="row-v">${sg(T.operating)}</div></div>`
+    + (P.ladder || []).map((x) => `<div class="row pl-li"><div class="row-m"><div class="row-t">${esc(word(x.label))}</div>`
+      + (x.key === "farm_sale" ? `<div class="row-c">${x.parts ? esc(L("farm_sub", { i: gel(x.parts.in), e: gel(x.parts.out) })) + " · " : ""}${esc(L("apart"))}</div>` : "")
+      + `</div><div class="row-v">${sgp(x.amount)}</div></div>`).join("")
+    + `<div class="row pl-net"><div class="row-m"><div class="row-t">${esc(netWord)}</div></div><div class="row-v">${sg(T.net)}</div></div>`
+    + (Math.abs(wip) >= 1 ? `<div class="row"><div class="row-m"><div class="row-t">${esc(word(P.wip) || L("wip"))}</div><div class="row-c">${esc(wip > 0 ? L("wip_up") : L("wip_down"))}</div></div>`
+      + `<div class="row-v"><span class="pill p-warn">${gel(Math.abs(wip))}</span></div></div><div class="note">${esc(L("wip_line"))}</div>` : "")
+    + `</div>`;
+}
 function books(co, d) {
-  const T = d.totals, rows = d.series || [], grain = d.grain || d.period.grain;
-  const has = (d.cats || []).length > 0;
+  const T = d.totals, rows = d.series || [], grain = d.grain || d.period.grain, P = d.plain || {};
+  const has = (P.exp || []).length || (P.rev || []).length || (P.ladder || []).length;
   const sel = S.sel[co] != null && S.sel[co] < rows.length ? S.sel[co] : Math.max(0, rows.map((r) => r.any).lastIndexOf(true));
   let s = hero(d);
   if (!has) return s + `<div class="empty">${esc(L("empty"))}</div>`;
@@ -161,58 +186,10 @@ function books(co, d) {
     + `<div class="pl-read"><b>${esc(bucketLabel(r.b, grain, true))}</b><span>${esc(L("revenue"))} <em>${sg(r.revenue)}</em></span><span>${esc(L("expense"))} <em>${sg(r.expense)}</em></span><span>${esc(L("res_op"))} <em>${sg(r.operating)}</em></span></div>`
     + table(co, rows, grain, [["revenue", L("revenue")], ["expense", L("expense")], ["operating", L("col_result")]]) + `</div>`;
   if (rows.length > 1) s += `<div class="card pl-ch"><div class="card-h"><div class="card-t">${esc(L("run"))}</div><div class="card-n">${esc(periodLabel(d.period))}</div></div>${running(rows, "cum")}</div>`;
-  // expense by category: one segmented bar (numbered as on a plan), then the rows that open to accounts and lines
-  const parts = OPEX.map((k) => [k, -catAmt(d, k)]).filter(([k]) => catOf(d, k)), pos = parts.filter(([, v]) => v > 0), tot = pos.reduce((a, [, v]) => a + v, 0);
-  if (parts.length) {
-    s += `<div class="card"><div class="card-h"><div class="card-t">${esc(L("exp_cats"))}</div><div class="card-n">${sg(T.expense)}</div></div>`
-      + (tot > 0 ? `<div class="pl-sb" role="img" aria-label="${esc(pos.map(([k, v]) => L("cat." + k) + " " + (100 * v / tot).toFixed(0) + "%").join(", "))}">`
-        + pos.map(([k, v]) => { const i = OPEX.filter((x) => catOf(d, x)).indexOf(k); return `<i class="f${i + 1}" style="flex:${v.toFixed(2)} 1 0">${v / tot >= 0.07 ? `<b>${i + 1}</b>` : ""}</i>`; }).join("") + `</div>` : "")
-      + catRows(co, d, OPEX.filter((k) => catOf(d, k)), tot, true) + `</div>`;
-  }
-  // revenue by account group (6 1 10 sales, 6 1 90 other operating ...)
-  const rev = catOf(d, "revenue");
-  if (rev) {
-    s += `<div class="card"><div class="card-h"><div class="card-t">${esc(L("revenue"))}</div><div class="card-n">${sg(T.revenue)}</div></div>`
-      + ((rev.groups || []).length ? (rev.groups || []).map((g) => `<div class="row"><div class="row-m"><div class="row-t">${esc(g.name || g.code)}</div><div class="row-c">${esc(g.code)} · ${esc(L("lines_n", { n: num(g.lines) }))}</div></div><div class="row-v">${sg(g.amount)}</div></div>`).join("") : "")
-      + catRows(co, d, ["revenue"], 0, false, { sign: 1, label: L("lines"), noValue: true }) + `</div>`;
-  }
-  // the ladder: operating result -> class 8 -> class 9 -> the net result; work in progress beside it, never inside
-  const nonop = NONOP.filter((k) => catOf(d, k)), c9 = C9.filter((k) => catOf(d, k)), wip = Number(T.wip) || 0;
-  const netWord = Math.abs(wip) >= 1 ? L("net") : T.net >= 0 ? L("net_profit") : L("net_loss");
-  s += `<div class="card"><div class="card-h"><div class="card-t">${esc(L("ladder"))}</div><div class="card-n">${esc(periodLabel(d.period))}</div></div>`
-    + `<div class="row"><div class="row-m"><div class="row-t">${esc(L("revenue"))}</div></div><div class="row-v">${sg(T.revenue)}</div></div>`
-    + `<div class="row"><div class="row-m"><div class="row-t">${esc(L("expense"))}</div></div><div class="row-v">${sg(-T.expense)}</div></div>`
-    + `<div class="row pl-sum"><div class="row-m"><div class="row-t">${esc(L("res_op"))}</div></div><div class="row-v">${sg(T.operating)}</div></div>`
-    + nonop.map((k) => {
-      const c = catOf(d, k), farm = k === "farm_sale" && (c.accounts || []).length;
-      const fi = farm ? c.accounts.filter((a) => a.amount > 0).reduce((x, a) => x + a.amount, 0) : 0, fe = farm ? -c.accounts.filter((a) => a.amount < 0).reduce((x, a) => x + a.amount, 0) : 0;
-      return `<div class="row pl-sub"><div class="row-m"><div class="row-t">${esc(L("cat." + k))}</div>${k === "farm_sale" ? `<div class="row-c">${farm ? esc(L("farm_sub", { i: gel(fi), e: gel(fe) })) + " · " : ""}${esc(L("apart"))}</div>` : ""}</div><div class="row-v">${sgp(c.amount)}</div></div>`;
-    }).join("")
-    + c9.map((k) => `<div class="row pl-sub"><div class="row-m"><div class="row-t">${esc(L("cat." + k))}</div></div><div class="row-v">${sgp(catAmt(d, k))}</div></div>`).join("")
-    + `<div class="row pl-net"><div class="row-m"><div class="row-t">${esc(netWord)}</div></div><div class="row-v">${sg(T.net)}</div></div>`
-    + (Math.abs(wip) >= 1 ? (d.can && d.can.accounts && catOf(d, "wip") ? catRows(co, d, ["wip"], 0, false, { sign: -1, label: L("wip"), sub: wip > 0 ? L("wip_up") : L("wip_down"), pill: true })
-        : `<div class="row"><div class="row-m"><div class="row-t">${esc(L("wip"))}</div><div class="row-c">${esc(wip > 0 ? L("wip_up") : L("wip_down"))}</div></div><div class="row-v"><span class="pill p-warn">${gel(Math.abs(wip))}</span></div></div>`)
-      + `<div class="note">${esc(L("wip_note"))}</div>` : "")
-    + `</div>`;
-  return s;
-}
-
-// ---------------- the rs.ge reading ----------------
-function rsge(co, d) {
-  const R = d.rsge || { series: [], totals: {} }, T = R.totals, rows = R.series || [], grain = d.grain || d.period.grain;
-  const sel = S.sel[co] != null && S.sel[co] < rows.length ? S.sel[co] : Math.max(0, rows.map((r) => !!(r.sale_n || r.purchase_n)).lastIndexOf(true));
-  let s = `<div class="grid2"><div class="stat"><div class="stat-l">${esc(L("sale"))}</div><div class="stat-v">${sg(T.sale_net)}</div><div class="stat-s">${esc(L("vat_sub", { v: gel(T.sale_vat), n: num(T.sale_n) }))}</div></div>`
-    + `<div class="stat"><div class="stat-l">${esc(L("purchase"))}</div><div class="stat-v">${sg(T.purchase_net)}</div><div class="stat-s">${esc(L("vat_sub", { v: gel(T.purchase_vat), n: num(T.purchase_n) }))}</div></div></div>`
-    + `<div class="hero pl-res"><div class="hero-l">${esc(L("diff"))}</div><div class="hero-v">${sg(T.diff)}</div><div class="hero-s">${esc(L("diff_sub"))}</div></div>`;
-  if (!(T.sale_n || T.purchase_n)) return s + `<div class="empty">${esc(L("empty"))}</div>`;
-  const r = rows[sel] || {};
-  s += `<div class="card pl-ch"><div class="card-h"><div class="card-t">${esc(L("chart_rsge"))}</div><div class="card-n">${esc(L("g_" + grain))}</div></div>`
-    + `<div class="pl-leg"><span><i class="pl-key a"></i>${esc(L("sale"))}</span><span><i class="pl-key h"></i>${esc(L("purchase"))}</span></div>`
-    + columns(co, rows, grain, "sale_net", "purchase_net", { aria: "col_a_rsge" }, sel)
-    + `<div class="pl-read"><b>${esc(bucketLabel(r.b, grain, true))}</b><span>${esc(L("sale"))} <em>${sg(r.sale_net)}</em></span><span>${esc(L("purchase"))} <em>${sg(r.purchase_net)}</em></span><span>${esc(L("diff"))} <em>${sg(r.diff)}</em></span></div>`
-    + table(co, rows, grain, [["sale_net", L("sale")], ["purchase_net", L("purchase")], ["diff", L("col_diff")]]) + `</div>`;
-  if (rows.length > 1) s += `<div class="card pl-ch"><div class="card-h"><div class="card-t">${esc(L("run_rsge"))}</div><div class="card-n">${esc(periodLabel(d.period))}</div></div>${running(rows, "cum")}</div>`;
-  return s + `<div class="note">${esc(L("rsge_note"))}</div>`;
+  // where the money went, where it came from (Otar 10.11)
+  if ((P.exp || []).length) s += `<div class="card"><div class="card-h"><div class="card-t">${esc(L("exp_cats"))}</div><div class="card-n">${sg(T.expense)}</div></div>${ranked(co, d, "exp", Number(T.expense))}</div>`;
+  if ((P.rev || []).length) s += `<div class="card"><div class="card-h"><div class="card-t">${esc(L("rev_src"))}</div><div class="card-n">${sg(T.revenue)}</div></div>${ranked(co, d, "rev", Number(T.revenue))}</div>`;
+  return s + ladder(d);
 }
 
 // ---------------- one company's section ----------------
@@ -220,27 +197,22 @@ function section(d, co) {
   if (!d || !d.period) return `<div class="empty">${esc(L("empty"))}</div>`;
   let s = "";
   if (S.err) s += `<div class="banner">${esc(L("err"))} <button class="pl-more" data-pl-retry="1">${esc(L("retry"))}</button></div>`;
-  // the books end before the period does (more than 3 days before its end or today): the empty days are not zero sales
-  const today = new Date(Date.now() + 4 * 3600e3).toISOString().slice(0, 10), endP = d.period.to < today ? d.period.to : today;
-  if (d.reading !== "rsge" && d.books_last && d.books_last >= d.period.from && (Date.parse(endP) - Date.parse(d.books_last)) / 864e5 > 3) s += `<div class="banner">${esc(L("books_behind", { d: dt(d.books_last) }))}</div>`;
-  if (Number(d.pending) > 0) s += `<div class="note">${esc(L("pending", { n: d.pending }))}</div>`;
-  s += d.reading === "rsge" ? rsge(co, d) : books(co, d);
-  s += `<div class="pl-tb"><div><span>${esc(mt(L("src")))}</span>${esc(d.reading === "rsge" ? L("src_rsge", { d: dt(d.rsge_last) }) : L("src_books", { d: dt(d.books_last), e: dt(d.books_entered) }))}</div>`
-    + (d.reading === "rsge" ? "" : `<div><span>${esc(mt(L("rule")))}</span>${esc(L("rule_books"))}</div>`) + `</div>`;
-  return s;
+  s += books(co, d);
+  // the source: one plain line (§1.7 A) - no lag banner, no pending note, no rule
+  return s + `<div class="pl-tb"><div>${esc(L("src_line", { d: dt(d.books_last) }))}</div></div>`;
 }
 
 // ---------------- the view the shell calls, and the redraw after a change made here ----------------
-// the shell's params() hook (PR-2, applied by W-RT): the period and the reading on screen go with every load of this tab
-// by mini/app.js, so a company switch or a live refresh keeps them instead of falling back to the year to date
-export function params() { return S.p || S.r ? { pnl: { p: S.p, r: S.r } } : null; }
+// the shell's params() hook: the period on screen goes with every load of this tab by mini/app.js, so a company switch or
+// a live refresh keeps it instead of falling back to the year to date
+export function params() { return S.p ? { pnl: { p: S.p } } : null; }
 export default function view(d, me, _t, co) {
   css();
   if (!S.pass) { S.pass = true; S.secs = []; queueMicrotask(() => { S.pass = false; }); }
   S.me = me; S.secs.push({ company: co, data: d });
-  if (d && d.period) { S.p = d.period.key; S.r = d.reading; }
-  if (!S.url) { S.url = true; const q = new URLSearchParams(location.search), p = q.get("p"), r = q.get("r");
-    if ((p && d && d.period && p !== d.period.key) || (r && d && r !== d.reading)) queueMicrotask(() => reload({ p: p || S.p, r: r || S.r })); }
+  if (d && d.period) S.p = d.period.key;
+  if (!S.url) { S.url = true; const p = new URLSearchParams(location.search).get("p");
+    if (p && d && d.period && p !== d.period.key) queueMicrotask(() => reload({ p })); }
   return (S.secs.length === 1 && d && d.period ? filter(d) : "") + section(d, co);
 }
 function draw() {
@@ -263,22 +235,21 @@ async function call(company, pnl) {
 }
 async function reload(next) {
   if (S.busy) return;
-  S.p = next.p ?? S.p; S.r = next.r ?? S.r; S.busy = true; S.err = null; draw();
+  S.p = next.p ?? S.p; S.busy = true; S.err = null; draw();
   try {
-    const b = await call(S.me.scope, { p: S.p, r: S.r });
-    S.me = b.me; S.secs = b.sections || []; S.sel = {}; S.open = {}; S.acct = {}; S.custom = false;
-    const at = document.getElementById("at"); if (at) at.textContent = t("app.updated", { at: tm(b.at) });
-    try { const u = new URL(location.href); u.searchParams.set("tab", "pnl"); u.searchParams.set("p", S.p); u.searchParams.set("r", S.r); history.replaceState(null, "", u); } catch (e) {}
+    const b = await call(S.me.scope, { p: S.p });
+    S.me = b.me; S.secs = b.sections || []; S.sel = {}; S.open = {}; S.custom = false;
+    try { const u = new URL(location.href); u.searchParams.set("tab", "pnl"); u.searchParams.set("p", S.p); u.searchParams.delete("r"); history.replaceState(null, "", u); } catch (e) {}
   } catch (e) { S.err = String(e.message || e); }
   S.busy = false; draw();
 }
-async function loadLines(co, cat, acct) {
-  const sec = S.secs.find((x) => x.company === co); if (!sec || !sec.data.can || !sec.data.can.lines) return;
-  const key = `${co}|${cat}|${acct || ""}|${sec.data.period.key}`;
+async function loadLines(co, side, cat) {
+  const sec = S.secs.find((x) => x.company === co); if (!sec || !sec.data.can || !sec.data.can.lines) return draw();
+  const key = `${co}|${side}|${cat}|${sec.data.period.key}`;
   if (S.lines[key] && !S.lines[key].err) return draw();
   S.lines[key] = null; draw();
   try {
-    const b = await call(co, { p: sec.data.period.key, r: "books", only: "lines", d: { cat, account: acct || null } });
+    const b = await call(co, { p: sec.data.period.key, only: "lines", d: { cat, side } });
     S.lines[key] = ((b.sections || [])[0] || {}).data?.drill?.lines || [];
   } catch (e) { S.lines[key] = { err: true }; }
   draw();
@@ -288,24 +259,22 @@ async function loadLines(co, cat, acct) {
 if (typeof document !== "undefined" && !window.__pnlView) {
   window.__pnlView = true;
   document.addEventListener("click", (e) => {
-    const el = e.target.closest("[data-pl-p],[data-pl-r],[data-pl-nav],[data-pl-custom],[data-pl-go],[data-pl-sel],[data-pl-cat],[data-pl-acct],[data-pl-tbl],[data-pl-retry]");
+    const el = e.target.closest("[data-pl-p],[data-pl-nav],[data-pl-custom],[data-pl-go],[data-pl-sel],[data-pl-cat],[data-pl-tbl],[data-pl-retry]");
     if (!el || !S.me) return;
     const TG = window.Telegram && window.Telegram.WebApp; if (TG && TG.HapticFeedback) TG.HapticFeedback.selectionChanged();
     const ds = el.dataset;
     if (ds.plP) return reload({ p: ds.plP });
-    if (ds.plR) return ds.plR !== S.r && reload({ r: ds.plR });
     if (ds.plNav) return reload({ p: ds.plNav });
     if (ds.plCustom) { S.custom = !S.custom; return draw(); }
     if (ds.plGo) { const a = document.getElementById("pl-a").value, b = document.getElementById("pl-b").value; if (/^\d{4}-\d{2}$/.test(a) && /^\d{4}-\d{2}$/.test(b)) return reload({ p: a <= b ? `${a}..${b}` : `${b}..${a}` }); return; }
     if (ds.plRetry) return reload({});
     if (ds.plTbl) { S.tbl[ds.plTbl] = !S.tbl[ds.plTbl]; return draw(); }
     if (ds.plSel) { const [co, i] = ds.plSel.split("|"); S.sel[co] = Number(i); return draw(); }
-    if (ds.plAcct) { const [co, cat, acct] = ds.plAcct.split("|"); S.acct[co] = S.acct[co] === acct ? null : acct; return loadLines(co, cat, S.acct[co]); }
     if (ds.plCat) {
-      const [co, cat] = ds.plCat.split("|");
-      if (ds.plAgain) { const sec = S.secs.find((x) => x.company === co); delete S.lines[`${co}|${cat}|${S.acct[co] || ""}|${sec && sec.data.period.key}`]; return loadLines(co, cat, S.acct[co]); }
-      S.acct[co] = null; S.open[co] = S.open[co] === cat ? null : cat;
-      return S.open[co] ? loadLines(co, cat, null) : draw();
+      const [co, side, cat] = ds.plCat.split("|"), key = `${side}:${cat}`;
+      if (ds.plAgain) { const sec = S.secs.find((x) => x.company === co); delete S.lines[`${co}|${side}|${cat}|${sec && sec.data.period.key}`]; return loadLines(co, side, cat); }
+      S.open[co] = S.open[co] === key ? null : key;
+      return S.open[co] ? loadLines(co, side, cat) : draw();
     }
   });
 }
@@ -322,7 +291,6 @@ function css() {
 .pl-seg button+button{border-left:1.5px solid var(--q-rule)}
 .pl-seg button:active{background:var(--q-surface-2)}
 .pl-seg button[aria-pressed="true"]{background:var(--q-invert);color:var(--q-on-invert)}
-.pl-rd{border-width:1.5px}
 .pl-step{display:flex;align-items:stretch;border:1.5px solid var(--q-rule);background:var(--q-surface)}
 .pl-step button{flex:none;width:48px;min-height:46px;border:0;border-radius:0;background:var(--q-surface);font:800 22px/1 var(--ff);color:var(--q-ink);cursor:pointer;transition:background-color 90ms var(--step)}
 .pl-step button:active{background:var(--q-surface-2)}
@@ -341,6 +309,8 @@ function css() {
 .pl-key.h,.pl-h,.f2{background:repeating-linear-gradient(45deg,var(--q-viz-fill) 0 1.5px,transparent 1.5px 4.5px);box-shadow:inset 0 0 0 1px var(--q-viz-fill)}
 .f3{background:repeating-linear-gradient(135deg,var(--q-viz-fill) 0 1px,transparent 1px 5px);box-shadow:inset 0 0 0 1px var(--q-viz-fill)}
 .f4,.f5{background:radial-gradient(circle,var(--q-viz-fill) 1px,transparent 1.4px) 0 0/5px 5px;box-shadow:inset 0 0 0 1px var(--q-viz-fill)}
+.f5{background:repeating-linear-gradient(90deg,var(--q-viz-fill) 0 1px,transparent 1px 5px)}
+.f6{background:var(--q-surface);box-shadow:inset 0 0 0 1px var(--q-viz-fill)}
 .pl-plot{position:relative;height:150px;margin:22px 0 0 46px}
 .pl-plot.pl-run{height:84px;margin-top:12px}
 .pl-g{position:absolute;left:0;right:0;border-top:1px solid var(--q-rule-light)}
@@ -387,22 +357,19 @@ button.pl-row{width:100%;text-align:left;background:transparent;border:0;border-
 .pl-net{border-top:3px solid var(--q-rule)}
 .pl-net .row-t{font-weight:700}
 .pl-net .row-v{font:800 22px/24px var(--ff);font-stretch:62.5%}
-.pl-sub .row-t{font-size:14px;color:var(--q-ink-2)}
+.pl-li .row-t{font-size:14px;color:var(--q-ink-2)}
 .pl-dr{background:var(--q-surface-2);margin:0 -12px;padding:4px 12px 10px;border-top:1px solid var(--q-rule-light)}
 .pl-dh{font:600 11px/14px var(--ff);font-stretch:75%;letter-spacing:.08em;color:var(--q-muted);padding:8px 0 4px}
-.pl-ac{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:baseline;width:100%;min-height:40px;padding:6px 0;border:0;border-top:1px solid var(--q-rule-light);border-radius:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
-.pl-ac.on{box-shadow:inset 3px 0 0 var(--q-ink);padding-left:8px}
-.pl-ac .c{font-size:12px;color:var(--q-muted);letter-spacing:.02em;font-variant-numeric:tabular-nums}
-.pl-ac .n{font-size:13.5px;line-height:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pl-ac .v,.pl-ln .v{font-size:13.5px;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+.pl-sub{display:grid;grid-template-columns:minmax(0,1fr) auto 48px;gap:8px;align-items:baseline;padding:6px 0;border-top:1px solid var(--q-rule-light);font-size:13.5px;line-height:18px}
+.pl-sub .n{min-width:0;overflow-wrap:anywhere}
+.pl-sub .v,.pl-ln .v{font-size:13.5px;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+.pl-sub .p{text-align:right;font-size:12px;color:var(--q-muted);white-space:nowrap;font-variant-numeric:tabular-nums}
 .pl-ln{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:8px;align-items:baseline;padding:6px 0;border-top:1px solid var(--q-rule-light);font-size:13px;line-height:17px}
 .pl-ln.mut{display:block;color:var(--q-muted)}
 .pl-ln .d{color:var(--q-muted);font-size:12px;white-space:nowrap}
 .pl-ln .w{min-width:0;overflow-wrap:anywhere}
-.pl-ln small{display:block;font-size:12px;color:var(--q-muted)}
-.pl-tb{display:grid;gap:1.5px;background:var(--q-rule);border-top:3px solid var(--q-rule)!important}
+.pl-tb{border-top:3px solid var(--q-rule)!important}
 .pl-tb div{background:var(--q-surface);padding:8px 12px;font-size:12.5px;line-height:17px;color:var(--q-ink-2)}
-.pl-tb span{display:block;font:600 11px/14px var(--ff);font-stretch:75%;letter-spacing:.09em;color:var(--q-muted);margin-bottom:2px}
 @media (max-width:360px){.pl-plot,.pl-x{margin-left:38px}.pl-seg button{font-size:10.5px;letter-spacing:.02em}}
 `;
   document.head.appendChild(st);
