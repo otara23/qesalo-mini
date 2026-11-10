@@ -6,7 +6,7 @@
 // nothing is fetched before a tap. The data: mini/functions/mini/drill.ts (walls, masking, exactness are decided there).
 // Design C: rows on one sheet, a 3 px ink rule marks the open level (no indentation - the phone is narrow), condensed
 // tabular figures, nothing eases (90 ms two-frame steps), 44 px targets.
-import { t, esc, num, dt, caps, SYM } from "../ui.js?v=f320af5.202611101900";
+import { t, esc, num, dt, caps, SYM } from "../ui.js?v=87c193d.202611101907";
 
 const L = (k, p) => t("drill." + k, p);
 const MINUS = "−";
@@ -55,8 +55,13 @@ function accountBody(ctx, account) {
   const key = k(ctx.co, ctx.tab, "account", account), d = S.data[key];
   if (!d) return `<div class="dr-l mut">${esc(L("loading"))}</div>`;
   if (d.err) return `<div class="dr-l mut">${esc(L("err"))} <button class="dr-btn" data-dr-retry="${esc(key)}">${esc(t("app.retry"))}</button></div>`;
+  const sg = ctx.sign || 1;
+  // an account with ORIS's opening and no line since (main: 1 4 10 39 144 534.14 on 10.11): its balance, and why there are
+  // no months (debug-1011 #4 - „გატარება არ არის" alone under a balance read as a missing drill)
+  if (!d.refused && !(d.months || []).length && d.balance != null && Number(d.balance) !== 0)
+    return `<div class="dr-h">${esc(L("balance"))} <b>${amt(sg * d.balance)}</b></div><div class="dr-l mut">${esc(L("carried"))}</div>`;
   if (d.refused || !(d.months || []).length) return `<div class="dr-l mut">${esc(L("no_lines"))}</div>`;
-  const sg = ctx.sign || 1, more = S.more[key] || 12, months = d.months.slice(0, more);
+  const more = S.more[key] || 12, months = d.months.slice(0, more);
   let s = `<div class="dr-h">${esc(L("months_h", { n: d.months.length }))}${d.balance != null ? ` · ${esc(L("balance"))} <b>${amt(sg * d.balance)}</b>` : ` · ${esc(L("no_balance"))}`}</div>`;
   for (const m of months) {
     const mk = k(ctx.co, ctx.tab, "lines", account, m.m), open = !!S.open[mk];

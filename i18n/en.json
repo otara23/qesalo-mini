@@ -748,6 +748,7 @@
   "loading": "Loading…",
   "err": "Couldn't load.",
   "no_lines": "No entries.",
+  "carried": "The balance was carried forward from an earlier period — no entries on the account since.",
   "months_h": "Months with entries: {n}",
   "balance": "Balance",
   "no_balance": "Balance is in ORIS",
