@@ -1,6 +1,6 @@
 // ხელშეკრულებები (the main company; wave polish1 - the order book of featB): live public contracts minus what rs.ge shows
 // invoiced to the same procurer; „≈" where several contracts share a procurer's invoices.
-import { t, esc, num, gel, card, row, stat, monthName, dy, until, shortName, detRow } from "../ui.js?v=ecad6c0.202611101959";
+import { t, esc, num, gel, card, row, stat, monthName, dy, until, shortName, detRow } from "../ui.js?v=ccca880.202611102005";
 
 export default function view(d) {
   const P = d.procurers || [], open = P.filter((p) => p.remaining > 0.5), done = P.filter((p) => p.remaining <= 0.5), ap = (p) => (p.approx ? "≈ " : "");

@@ -500,9 +500,9 @@
   "awaiting": "Of which {v} awaiting confirmation",
   "input_sub": "Purchase invoices",
   "by_month": "By month",
-  "by_month_sub": "Sales by operation month − purchases by the month credited",
+  "by_month_sub": "Sales − purchases",
   "month_row": "Sales {o} · purchases {i}",
-  "note": "This is a picture of the invoices — not the VAT return and not the tax card balance (the card isn't available yet). Last invoice {d}."
+  "note": "This is a picture of the invoices — not the VAT return and not the tax card balance (the card isn't available yet). Months: sales by the operation month, purchases by the month credited, as in the VAT return. Last invoice {d}."
  },
  "imports": {
   "value": "Imports {y} — customs value",

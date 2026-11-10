@@ -1,5 +1,5 @@
 // დღგ (the main company; the bot's card M5): VAT by month from the rs.ge invoices - not the declaration, not the tax card.
-import { t, esc, gel, dt, card, row, stat, monthName } from "../ui.js?v=ecad6c0.202611101959";
+import { t, esc, gel, dt, card, row, stat, monthName } from "../ui.js?v=ccca880.202611102005";
 
 export default function view(d) {
   const net = Number(d.net);
