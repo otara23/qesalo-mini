@@ -1,6 +1,6 @@
 // გაყიდვები / შესყიდვები (the main company; the bot's cards M3 / M4): rs.ge invoices this month and year to date, the
 // top five counterparties, waybills; cancelled invoices not in the sums. purchases.js is this view (d.side says which).
-import { t, esc, num, gel, dt, card, row, stat, barRow, monthName } from "../ui.js?v=5aaf2cc.202611110820";
+import { t, esc, num, gel, dt, card, row, stat, barRow, monthName } from "../ui.js?v=41e520c.202611110831";
 
 export default function view(d) {
   const sale = d.side === "sale", who = sale ? t("rsge.buyer") : t("rsge.supplier");

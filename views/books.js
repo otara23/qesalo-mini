@@ -9,11 +9,18 @@
 // schema/034a + 034b; the main company's months before 1.01.2023 show a balance only for classes 6-9), so the main
 // company's matrix note is the nursery's (m_note_main said 1-5 had no balance). A view of the books - nothing here
 // judges a line.
-import { t, tOr, lang, esc, num, gel, dt, card, row, stat } from "../ui.js?v=5aaf2cc.202611110820";
-import { section, accountRow, keyOf, isOpen, slot, moreOf, drillCss, cpt, monShort, amt, redrawView } from "./drill-ui.js?v=5aaf2cc.202611110820";
+// bsheet (11.11.2026; Otar: „a shareholder friendly interface that lists asset classes, liability classes and equity, not
+// the confusing interface we have at the moment" - layout approved 11.11): the face is the balance sheet - per company
+// აქტივები / ვალდებულებები / კაპიტალი, each class one row (today · 1 January · the change), the block totals, the check
+// line; a class opens to its accounts (op „bs"), an account to the drill above (months, lines). Everything that was the
+// face (lag, new lines, the year card, the class x month matrix, bank / rs.ge <-> books) sits behind „დეტალური ხედი".
+// The investor (the nursery only): the sheet alone, his accounts without codes and without a drill. No sheet for a person
+// (the function's walled rule, or a failed read): the tab as it was. Numbers and walls: mini/functions/mini/bsheet.ts.
+import { t, tOr, lang, esc, num, gel, dt, card, row, stat, mt } from "../ui.js?v=41e520c.202611110831";
+import { section, accountRow, keyOf, isOpen, slot, moreOf, drillCss, cpt, monShort, amt, sgn, redrawView } from "./drill-ui.js?v=41e520c.202611110831";
 
 const L = (k, p) => t("books." + k, p);
-const V = { side: "d" };   // the matrix reading: d = debit turnover, c = credit turnover
+const V = { side: "d", detail: {}, more: {} };   // the matrix reading: d = debit turnover, c = credit turnover; detail[co] = the fold open; more[key] = accounts shown
 // a matrix cell in thousands of lari, the unit once in the header (6 columns fit a 360 px phone): 5,168 · 46 · 2.3 · <0.1
 const kGel = (v) => { const a = Math.abs(Number(v) || 0) / 1000, s = Number(v) < 0 ? "−" : ""; return !a ? "" : a < 0.05 ? "<0.1" : s + (a < 10 ? a.toFixed(1) : num(Math.round(a))); };
 
@@ -109,13 +116,93 @@ function compare(d) {
   return s;
 }
 
-function render(d, co) { return co === "main" ? main(d) : nursery(d); }
+// ---------------- the balance sheet (bsheet) ----------------
+const B = (k, p) => t("books.bs." + k, p);
+const whole = (v) => (v == null ? "—" : amt(v, 0));
+const chg = (v) => (v == null ? "—" : Math.round(Number(v)) === 0 ? "0" : sgn(v, 0));
+const yr = (s, ref) => (s ? dt(s) + (String(s).slice(0, 4) !== String(ref || "").slice(0, 4) ? " " + String(s).slice(0, 4) : "") : "—");
+const cells = (a) => `<span class="v t">${whole(a.t)}</span><span class="v j">${whole(a.j)}</span><span class="v d">${chg(a.d != null ? a.d : a.j != null ? a.t - a.j : null)}</span>`;
+function sheet(d, co) {
+  const bs = d.bsheet;
+  const meta = [B("meta", { d: yr(bs.today, bs.today), l: yr(bs.last_entry, bs.today) }),
+    bs.first_entry && bs.first_entry > bs.jan1 ? B("from", { d: yr(bs.first_entry, bs.today) }) : ""].filter(Boolean).join(" · ");
+  let s = `<div class="card bs-c"><div class="card-h"><div class="card-t">${esc(B("title"))}</div><div class="card-n">ORIS</div></div>`
+    + `<div class="bs-meta">${esc(meta)}</div>`
+    + `<div class="bs-r bs-hd"><span>${esc(B("h_today"))}</span><span>${esc(B("h_jan1"))}</span><span>${esc(B("h_change"))}</span></div>`;
+  for (const b of bs.blocks) {
+    s += `<div class="bs-bh">${esc(lang() === "ka" ? mt(B("block." + b.k)) : B("block." + b.k))}</div>`;
+    for (const c of bs.classes.filter((x) => x.block === b.k)) {
+      const key = keyOf(co, "books", "bs", c.k), open = isOpen(key), tap = c.n > 0, nm = B("cls." + c.k);
+      const sub = tap ? `<small>${esc(B("n_accounts", { n: num(c.n) }))} ›</small>` : "";   // at the name line's right end
+      s += tap ? `<div class="bs-r tap${open ? " on" : ""}" role="button" tabindex="0" data-dr="${esc(key)}" aria-expanded="${open}" aria-label="${esc(B("aria", { c: nm }))}">`
+        : `<div class="bs-r">`;
+      s += `<span class="nm"><span>${esc(nm)}</span>${sub}</span>${cells(c)}</div>`;
+      if (open) s += `<div class="dr-p bs-p">${classAccounts(d, co, c, key, b.k)}</div>`;
+    }
+    s += `<div class="bs-r bs-tot"><span class="nm"><span>${esc(B("total." + b.k))}</span></span>${cells(b)}</div>`;
+  }
+  s += check(bs);
+  const notes = [];
+  if (bs.future) notes.push(B("future", { n: num(bs.future.n), d: yr(bs.future.first, bs.today), a: num(bs.future.amount, 2) }));
+  if (bs.pending) notes.push(B("pending", { n: num(bs.pending) }));
+  notes.push(B("note_year"), B(d.investor ? "note_tap_inv" : "note_tap"));
+  s += `<div class="note bs-n">${notes.map(esc).join("<br>")}</div></div>`;
+  return s;
+}
+// the check line: assets − (liabilities + equity) at both dates; a difference is shown as itself, with what it is made of
+function check(bs) {
+  const A = bs.blocks.find((b) => b.k === "assets"), L = bs.blocks.find((b) => b.k === "liabilities"), E = bs.blocks.find((b) => b.k === "equity");
+  const ok = Math.abs(Number(bs.check.t)) < 0.005 && (bs.check.j == null || Math.abs(Number(bs.check.j)) < 0.005);
+  const v = (x) => (x == null ? "—" : amt(x, 2));
+  let s = `<div class="bs-chk${ok ? " ok" : " gap"}"><div class="bs-ck">${esc(B(ok ? "check_ok" : "check_gap"))}</div>`
+    + `<div class="bs-cr"><span>${esc(B("h_today"))}</span><span>${esc(B("block.assets"))} <b>${v(A.t)}</b></span><span>${esc(B("le"))} <b>${v(bs.check.le_t)}</b></span><span>${esc(B("diff"))} <b>${v(bs.check.t)}</b></span></div>`
+    + (bs.check.j != null ? `<div class="bs-cr"><span>${esc(B("h_jan1"))}</span><span>${esc(B("block.assets"))} <b>${v(A.j)}</b></span><span>${esc(B("le"))} <b>${v(bs.check.le_j)}</b></span><span>${esc(B("diff"))} <b>${v(bs.check.j)}</b></span></div>` : "");
+  if (bs.check.unmapped) s += `<div class="bs-cw">${esc(B("unmapped", { n: num(bs.check.unmapped.n), t: v(bs.check.unmapped.t) }))}</div>`;
+  if (bs.hidden_gap) s += `<div class="bs-cw">${esc(B("hidden_gap", { t: v(bs.hidden_gap.t) }))}</div>`;
+  return s + `</div>`;
+}
+// a class's accounts: the slot of op „bs" (./drill-ui.js fetches it on the tap); an account opens to the drill (months,
+// lines) for the people the function gives the lines to; the investor's rows have no code and open nothing
+function classAccounts(d, co, c, key, block) {
+  const x = slot(key);
+  if (!x) return `<div class="dr-l mut">${esc(t("drill.loading"))}</div>`;
+  if (x.err) return `<div class="dr-l mut">${esc(t("drill.err"))} <button class="dr-btn" data-dr-retry="${esc(key)}">${esc(t("app.retry"))}</button></div>`;
+  const acc = x.accounts || [];
+  if (!acc.length) return `<div class="dr-l mut">${esc(t("drill.no_lines"))}</div>`;
+  const more = V.more[key] || 40, ctx = { co, tab: "books", sign: block === "assets" ? 1 : -1, can: !!(d.can && d.can.lines) && !d.investor };
+  const right = (a) => `${whole(a.t)}<small>${esc(B("h_jan1"))} ${whole(a.j)}</small>`;
+  let s = `<div class="dr-h">${esc(B("c_head", { n: num(acc.reduce((q, a) => q + (a.n || 1), 0)) }))}</div>`;   // the investor's merged rows count their accounts
+  for (const a of acc.slice(0, more)) {
+    if (x.investor || a.hidden || a.carried || !a.account) {
+      const w = a.w ? (a.w.startsWith("pnl.") ? tOr("books.cls." + a.w.slice(4), "") : B(a.w)) : "";
+      const nm = (a.person ? B("person") : a.hidden ? B("hidden_row") : a.carried ? B("carried") : w || a.name || B("unnamed")) + (a.n > 1 ? " · " + num(a.n) : "");
+      s += `<div class="dr-a no"><span class="n">${esc(nm)}</span><span class="v">${right(a)}</span></div>`;
+    } else s += accountRow(ctx, a, right(a), "");
+  }
+  if (acc.length > more) s += `<button class="dr-btn" data-bk-more="${esc(key)}">${esc(t("drill.more_accounts", { n: acc.length - more }))}</button>`;
+  return s;
+}
+
+function render(d, co) {
+  const bs = d.bsheet;
+  if (d.investor) return bs && !bs.err && !bs.held && bs.blocks ? sheet(d, co) : `<div class="empty">${esc(B("err"))}</div>`;
+  const old = co === "main" ? main(d) : nursery(d);
+  // no sheet for this person or a failed read: the tab as it was (a read error says so in one line, a wall says nothing)
+  if (!bs || bs.held || bs.err || !bs.blocks) return (bs && bs.err ? `<div class="note">${esc(B("err"))}</div>` : "") + old;
+  const open = !!V.detail[co];
+  return sheet(d, co) + `<button class="bs-fold${open ? " on" : ""}" data-bk-detail="${esc(co)}" aria-expanded="${open}"><span>${esc(B("detail"))}</span><span class="chev">›</span></button>` + (open ? old : "");
+}
 export default function view(d, me, _t, co) { css(); drillCss(); return section("books", me, co, d, render); }
 
 // the matrix reading (the one click of this view; the drill's are ./drill-ui.js's)
 if (typeof document !== "undefined" && !window.__booksView) {
   window.__booksView = true;
   document.addEventListener("click", (e) => {
+    // bsheet: the fold (the detailed view) and a class's next 40 accounts
+    const f = e.target.closest("[data-bk-detail],[data-bk-more]");
+    if (f) { const TG = window.Telegram && window.Telegram.WebApp; if (TG && TG.HapticFeedback) TG.HapticFeedback.selectionChanged();
+      if (f.dataset.bkDetail) V.detail[f.dataset.bkDetail] = !V.detail[f.dataset.bkDetail]; else V.more[f.dataset.bkMore] = (V.more[f.dataset.bkMore] || 40) + 40;
+      redrawView(); return; }
     const b = e.target.closest("[data-bk-side]"); if (!b) return;
     const TG = window.Telegram && window.Telegram.WebApp; if (TG && TG.HapticFeedback) TG.HapticFeedback.selectionChanged();
     if (V.side !== b.dataset.bkSide) { V.side = b.dataset.bkSide; redrawView(); }
@@ -149,6 +236,38 @@ function css() {
 .bk-z .k b,.bk-z>span.nm{color:var(--q-muted)}
 .bk-p{margin:0 -12px}
 .bk-n{border-top:1px solid var(--q-rule-light)}
+.bs-c{padding-bottom:4px}
+.bs-meta{font-size:12.5px;line-height:17px;color:var(--q-muted);padding:0 0 4px}
+.bs-r{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:6px;row-gap:1px;align-items:baseline;min-height:44px;padding:6px 0 7px;border-top:1px solid var(--q-rule-light)}
+.bs-r.tap{cursor:pointer;transition:background-color 90ms var(--step)}
+.bs-r.tap:active{background:var(--q-surface-2)}
+.bs-r.on{box-shadow:inset 3px 0 0 var(--q-ink);padding-left:9px}
+.bs-r .nm{grid-column:1 / -1;display:flex;align-items:baseline;gap:8px;min-width:0;font-size:14px;line-height:18px}
+.bs-r .nm>span{flex:1 1 auto;min-width:0}
+.bs-r .nm small{flex:none;font-size:11.5px;line-height:15px;color:var(--q-muted);white-space:nowrap}
+.bs-r .v{font:600 12.5px/16px var(--ff);font-stretch:75%;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--q-ink-2)}
+.bs-r .v.t{font-weight:800;font-size:13.5px;color:var(--q-ink)}
+.bs-hd{min-height:24px;padding:2px 0 4px;border-top:0}
+.bs-hd>span{font:600 11px/13px var(--ff);font-stretch:75%;letter-spacing:.05em;color:var(--q-muted);text-align:right}
+.bs-bh{font:800 16px/20px var(--ff);font-stretch:62.5%;letter-spacing:.05em;padding:12px 0 4px;border-top:1.5px solid var(--q-rule)}
+.bs-tot{border-top:1.5px solid var(--q-rule)}
+.bs-tot .nm{font-weight:700}
+.bs-tot .v{color:var(--q-ink);font-weight:800}
+.bs-p{margin:0 -12px}
+.bs-chk{margin:10px 0 2px;padding:8px 10px;border:1.5px solid var(--q-rule);background:var(--q-surface)}
+.bs-ck{display:flex;align-items:center;gap:8px;font:700 13px/17px var(--ff)}
+.bs-chk.ok .bs-ck{color:var(--q-good)}
+.bs-chk.gap .bs-ck{color:var(--q-warn)}
+.bs-chk.ok .bs-ck::before{content:"";flex:none;width:5px;height:10px;margin:0 3px 3px;border:solid var(--q-good);border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
+.bs-chk.gap .bs-ck::before{content:"";flex:none;width:0;height:0;border-left:5.5px solid transparent;border-right:5.5px solid transparent;border-bottom:10px solid var(--q-warn)}
+.bs-cr{display:flex;flex-wrap:wrap;gap:2px 10px;margin-top:5px;font-size:12px;line-height:16px;color:var(--q-ink-2);font-variant-numeric:tabular-nums}
+.bs-cr>span:first-child{flex-basis:100%;font:600 11px/14px var(--ff);font-stretch:75%;letter-spacing:.05em;color:var(--q-muted)}
+.bs-cr b{color:var(--q-ink);font-weight:700}
+.bs-cw{margin-top:6px;font-size:12.5px;line-height:17px;color:var(--q-warn);font-weight:600}
+.bs-n{border-top:1px solid var(--q-rule-light);margin-top:8px}
+.bs-fold{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:48px;padding:0 12px;border:0;border-radius:0;background:var(--q-surface);color:var(--q-ink);font:700 12.5px/16px var(--ff);font-stretch:75%;letter-spacing:.05em;cursor:pointer;transition:background-color 90ms var(--step)}
+.bs-fold:active{background:var(--q-surface-2)}
+.bs-fold.on .chev{transform:rotate(90deg)}
 `;
   document.head.appendChild(st);
 }

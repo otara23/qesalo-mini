@@ -19,7 +19,7 @@
 // column live here; a change re-asks the function itself (the same endpoint and body as app.js, plus `pnl: { p, only,
 // d }`) and redraws #view, keeping the old sheet at reduced opacity while it loads. The period is kept in the address
 // (?tab=pnl&p=…).
-import { t, esc, num, gel, dt, mt, caps, SYM, cut, lang } from "../ui.js?v=5aaf2cc.202611110820";
+import { t, esc, num, gel, dt, mt, caps, SYM, cut, lang } from "../ui.js?v=41e520c.202611110831";
 
 const API = "https://owgvoonnsccujzpbprpw.supabase.co/functions/v1/mini";   // = mini/app.js API
 const S = { me: null, secs: [], pass: false, p: null, open: {}, lines: {}, sel: {}, tbl: {}, custom: false, busy: false, err: null, url: false };

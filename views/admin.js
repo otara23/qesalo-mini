@@ -9,7 +9,7 @@
 //   ვერსია       the page (version.json, fetched once in mount), the function (its commit + the access matrix's version)
 //                and the bot's active users
 // Data: mini/functions/mini/tabs-global.ts admin(). Status = a shape plus a word (check, ring, triangle); no colour alone.
-import { t, tOr, esc, num, dt, tm, card, row, levelText, nameIn } from "../ui.js?v=5aaf2cc.202611110820";
+import { t, tOr, esc, num, dt, tm, card, row, levelText, nameIn } from "../ui.js?v=41e520c.202611110831";
 
 const W = (k, p) => t("admin." + k, p);
 const STATE = { active: ["ok", "s_active"], invited: ["info", "s_invited"], waiting: ["warn", "s_waiting"], not_invited: ["idle", "s_not_invited"], off: ["idle", "s_off"] };
