@@ -9,7 +9,7 @@
 // when it goes. Leaflet's panes (z-index 200-800) stay inside the sheet: map.js gives .mp-sheet its own stacking context
 // (isolation, uifix 11.11 - they had painted over the panel's tab bar and header). Tile failures: after 6 errors the note „ორთოფოტო ამჟამად მიუწვდომელია" and the lines stay on the paper.
 // NDVI (the farm): L.imageOverlay of the function's PNG in its own pane, above the imagery, below the lines.
-import { t, esc } from "../ui.js?v=d919539.202611110839";
+import { t, esc } from "../ui.js?v=25cb370.202611111231";
 
 const L_ = (k, p) => t("map." + k, p);
 export const LEAFLET = {

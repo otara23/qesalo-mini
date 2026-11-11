@@ -5,8 +5,8 @@
 // account opens to its months and lines (./drill-ui.js; a supplier's lines read as debt: + = owed more). The 18.06
 // purchase debt (3 1 10 26) is not in the payables by the standing ruling, and says so. The main company: nine rows
 // of its measured balance-sheet map (main() below, debug-1011 #4). A view of the books - nothing here judges an account.
-import { t, esc, num, gel, dt, card, row } from "../ui.js?v=d919539.202611110839";
-import { section, accountRow, keyOf, isOpen, drillCss, amt, toggleLocal, redrawView } from "./drill-ui.js?v=d919539.202611110839";
+import { t, esc, num, gel, dt, card, row } from "../ui.js?v=25cb370.202611111231";
+import { section, accountRow, keyOf, isOpen, drillCss, amt, toggleLocal, redrawView } from "./drill-ui.js?v=25cb370.202611111231";
 
 const L = (k, p) => t("wc." + k, p);
 // the order and words of today's tab; payables read as a positive debt
@@ -18,7 +18,7 @@ function nursery(d) {
   for (const [k, label] of ROWS) {
     const it = I[k] || { total: 0, accounts: [], open: 0 }, key = keyOf("nursery", "wc", "item", k), open = isOpen(key);
     const value = k === "payables" ? `<span class="neg">${MINUS}${num(it.total)} ₾</span>` : k === "vat" ? gel(w.vat_credit_card) : gel(it.total);
-    const sub = k === "vat" ? esc(L("vat_sub", { d: dt(d.vat_card_as_of) })) : it.accounts.length ? esc(L(k === "payables" ? "n_suppliers" : k === "saplings" || k === "stock_other" ? "n_items" : "n_accounts", { n: num(it.open) })) : "";
+    const sub = k === "vat" ? esc(Number(w.vat_card_refunds) > 0 ? L("vat_sub_adj", { d: dt(d.vat_card_as_of), r: dt(w.vat_card_refund_on) }) : L("vat_sub", { d: dt(d.vat_card_as_of) })) : it.accounts.length ? esc(L(k === "payables" ? "n_suppliers" : k === "saplings" || k === "stock_other" ? "n_items" : "n_accounts", { n: num(it.open) })) : "";
     s += `<div class="row tap wc-r${open ? " on" : ""}" role="button" tabindex="0" data-dr-wc="${esc(key)}" aria-expanded="${open}"><div class="row-m"><div class="row-t">${esc(L(label))}</div>${sub ? `<div class="row-c">${sub}</div>` : ""}</div><div class="row-v">${value}</div><span class="chev">›</span></div>`;
     if (open) s += `<div class="dr-p">${itemBody(k, it, d, can)}</div>`;
   }
@@ -29,8 +29,11 @@ function itemBody(k, it, d, can) {
   const ctx = { co: "nursery", tab: "wc", sign: k === "payables" ? -1 : 1, can };
   let s = "";
   if (k === "vat") {
-    const b = it.accounts[0];
-    s += row(esc(L("vat_card")), esc(dt(d.vat_card_as_of)), gel(d.wc && d.wc.vat_credit_card, 2));
+    const b = it.accounts[0], w = d.wc || {};
+    // taxref (schema/057): the card less the Treasury's refunds after it - the snapshot, the refund, the card now
+    if (Number(w.vat_card_refunds) > 0) s += row(esc(L("vat_card")), esc(dt(d.vat_card_as_of)), gel(w.vat_card_snapshot, 2))
+      + row(esc(t("tax.refund")), esc(dt(w.vat_card_refund_on)), `−${num(w.vat_card_refunds, 2)} ₾`) + row(esc(t("tax.now")), "", gel(w.vat_credit_card, 2));
+    else s += row(esc(L("vat_card")), esc(dt(d.vat_card_as_of)), gel(w.vat_credit_card, 2));
     if (b) s += accountRow(ctx, b, amt(b.amount), esc(L("vat_books")));
     return s;
   }
