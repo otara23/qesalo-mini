@@ -17,8 +17,8 @@
 // open rows and the view's params() kept), polling with `since` while the socket is down, nothing while hidden, and a
 // reload that keeps the tab, company and filters when the site serves a newer version.json. A load sequence guard: an
 // answer that a newer load (a tap) has overtaken is dropped.
-import { t, tOr, setStrings, setLocale, esc, mt, caps, SYM, symOf, tm, card, nameIn, levelText } from "./ui.js?v=ccca880.202611102005";
-import { createLive } from "./live.js?v=ccca880.202611102005";
+import { t, tOr, setStrings, setLocale, esc, mt, caps, SYM, symOf, tm, card, nameIn, levelText } from "./ui.js?v=5aaf2cc.202611110820";
+import { createLive } from "./live.js?v=5aaf2cc.202611110820";
 
 // the function's address is written once, in index.html (<meta name="qesalo-api">): the doctor's Pages check reads the
 // served index.html for it (lib/doctor/checks.mjs PAGES.marker)
@@ -71,12 +71,12 @@ const modOf = (tab) => {
   return mods[tab];
 };
 
-// our light (survey sheet) or dark (cyanotype) token set from Telegram's colorScheme; Telegram's chrome gets the
-// canvas colour; the safe areas go into --q-safe-top / --q-safe-bottom
+// one look on every device (uifix 11.11.2026, Otar: „on web it looks black and white like it should, on phone it is navy
+// blue"): the survey sheet - black ink on drawing paper - whatever Telegram's colorScheme or the phone's dark mode says
+// (index.html has the one token set, color-scheme „only light"); Telegram's header, background and bottom bar get the same
+// canvas colour, again on its themeChanged; the safe areas go into --q-safe-top / --q-safe-bottom
 function theme() {
-  const dark = TG && TG.colorScheme ? TG.colorScheme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
   const root = document.documentElement;
-  root.dataset.theme = dark ? "dark" : "light";
   const s = (TG && TG.safeAreaInset) || {}, c = (TG && TG.contentSafeAreaInset) || {};
   root.style.setProperty("--q-safe-top", ((s.top || 0) + (c.top || 0)) + "px");
   root.style.setProperty("--q-safe-bottom", ((s.bottom || 0) + (c.bottom || 0)) + "px");

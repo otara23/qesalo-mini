@@ -4,11 +4,12 @@
 // and crossorigin; NAPR orthophoto tiles (nt0.napr.gov.ge NGCache, ORTHO_GEORGIA_4: maxNativeZoom 18, maxZoom 19), never
 // pre-fetched or stored, the page's own Referer; the attribution lives in map.js's title block (attributionControl off).
 // The features as GeoJSON on Leaflet's SVG renderer with one className per kind (a --q-surface halo under every ink line,
-// so a line reads on imagery in both themes); names as boxed permanent labels (.mp-lab); pinch-zoom and two boxed 44 px
+// so a line reads on imagery); names as boxed permanent labels (.mp-lab); pinch-zoom and two boxed 44 px
 // cells „+ −"; Telegram's swipe-to-close off while this view is on (Telegram.WebApp.disableVerticalSwipes) and back on
-// when it goes. Tile failures: after 6 errors the note „ორთოფოტო ამჟამად მიუწვდომელია" and the lines stay on the paper.
+// when it goes. Leaflet's panes (z-index 200-800) stay inside the sheet: map.js gives .mp-sheet its own stacking context
+// (isolation, uifix 11.11 - they had painted over the panel's tab bar and header). Tile failures: after 6 errors the note „ორთოფოტო ამჟამად მიუწვდომელია" and the lines stay on the paper.
 // NDVI (the farm): L.imageOverlay of the function's PNG in its own pane, above the imagery, below the lines.
-import { t, esc } from "../ui.js?v=ccca880.202611102005";
+import { t, esc } from "../ui.js?v=5aaf2cc.202611110820";
 
 const L_ = (k, p) => t("map." + k, p);
 export const LEAFLET = {
@@ -42,7 +43,7 @@ const MAPS = {};
 const VIEW = {};
 const tg = () => (typeof window !== "undefined" && window.Telegram && window.Telegram.WebApp) || null;
 function swipes(on) { const w = tg(); try { if (w) (on ? w.enableVerticalSwipes : w.disableVerticalSwipes) && (on ? w.enableVerticalSwipes() : w.disableVerticalSwipes()); } catch (e) {} }
-const LINE_KINDS = ["parcel", "lease", "servitude", "building", "tank", "solar", "yard", "road", "river", "canal", "district", "country"];
+const LINE_KINDS = ["parcel", "lease", "servitude", "building", "greenhouse", "tank", "solar", "yard", "road", "river", "canal", "district", "country"];
 
 // draw into el (a .mp-sat cell): { co, d, sheet: { bbox, site, id }, lang, ndvi: bool, onTap(id) }
 export async function draw(el, o) {
@@ -52,8 +53,10 @@ export async function draw(el, o) {
   if (prev) { try { VIEW[o.co + ":" + o.sheet.id] = { c: prev.map.getCenter(), z: prev.map.getZoom() }; prev.map.remove(); } catch (e) {} }
   el.innerHTML = "";
   const reduced = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // the main company's land (≈ 330 m) fits a phone only between two zoom steps: quarter steps there (uifix)
+  const land = o.sheet.site === "krtsanisi";
   const map = L.map(el, { zoomControl: false, attributionControl: false, zoomAnimation: !reduced, fadeAnimation: !reduced, markerZoomAnimation: !reduced,
-    preferCanvas: false, tap: true, maxZoom: 19, minZoom: 6 });
+    preferCanvas: false, tap: true, maxZoom: 19, minZoom: 6, zoomSnap: land ? 0.25 : 1 });
   MAPS[o.co] = { map, el };
   let errors = 0, loaded = 0, noted = false;
   const tiles = L.tileLayer(NAPR_TILES, { maxZoom: 19, maxNativeZoom: 18, detectRetina: false, keepBuffer: 1 });
@@ -84,7 +87,7 @@ export async function draw(el, o) {
       const p = f.properties, nm = (p.names && (p.names[o.lang] || p.names.ru || p.names.en || p.names.ka)) || "";
       // as on the plan: a name where it fitted there, else its number in the legend
       if (o.nums && o.nums.has(p.id)) l.bindTooltip(String(o.nums.get(p.id)), { permanent: true, direction: "center", className: "mp-lab mp-num", opacity: 1 });
-      else if (["parcel", "lease", "district"].includes(p.kind) || (p.kind === "block" && o.sheet.id === "yard"))
+      else if ((["parcel", "lease", "district"].includes(p.kind) && !(land && p.kind === "parcel")) || (p.kind === "block" && o.sheet.id === "yard"))
         l.bindTooltip(esc(nm.split(" · ")[0]), { permanent: true, direction: "center", className: "mp-lab", opacity: 1 });
       l.on("click", () => o.onTap && o.onTap(p.id));
     },
@@ -127,7 +130,7 @@ function css() {
   const st = document.createElement("style"); st.id = "mps-css";
   st.textContent = `
 .mp-sat{background:var(--q-surface-2)}.mp-sat.leaflet-container,.mp-sat .leaflet-container{background:var(--q-surface-2);font:inherit}
-.mp-sat *,.mp-sat .leaflet-tooltip{border-radius:0!important;box-shadow:none!important}
+.mp-sat{isolation:isolate;z-index:0}.mp-sat *,.mp-sat .leaflet-tooltip{border-radius:0!important;box-shadow:none!important}
 .mp-sat .leaflet-tooltip::before{display:none}
 .mp-sat .mp-halo{fill:none;stroke:var(--q-surface);stroke-width:3.2;stroke-opacity:.85}
 .mp-sat .mp-g{fill:none;stroke:var(--q-ink);stroke-width:1.5}.mp-sat .mp-g.parcel{stroke-width:2}.mp-sat .mp-g.lease,.mp-sat .mp-g.pln{stroke-dasharray:6 4}

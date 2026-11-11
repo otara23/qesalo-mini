@@ -16,7 +16,7 @@
 // the movements by day from ./functions/mini/moves.ts (schema/042), 200 at a time. Inflows carry the 3 px ink bar at the
 // left, outflows none; the direction is the bar + the word + the sign, never a colour. The filter lives here and goes
 // with every load of the tab (params()), so a company switch and the live refresh keep it; „ორივე" = one card per company.
-import { t, tOr, esc, num, gel, dt, tm, card, row, barRow, span, fxAmt, SYM, caps, stat, mt } from "../ui.js?v=ccca880.202611102005";
+import { t, tOr, esc, num, gel, dt, tm, card, row, barRow, span, fxAmt, SYM, caps, stat, mt } from "../ui.js?v=5aaf2cc.202611110820";
 
 const ymd = (s) => { const d = new Date(s); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
 const at = (asOf, fetched) => (fetched && asOf && ymd(fetched) === String(asOf).slice(0, 10) ? tm(fetched) : dt(asOf));

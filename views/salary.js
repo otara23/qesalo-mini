@@ -12,7 +12,7 @@
 // (measured: the nursery's August would read „net 10 842" with 8 500 paid; main's November „−16 150"). The sheet lists the
 // month's lines as the books hold them; main's „{month} ხელფასი გადახდილია {d}" (paid_for) says when that month was paid.
 // Design C „ნახაზი": zero radius, 1.5 / 3 px rules, status = shape + word, colour never on a number, 90 ms two-frame steps.
-import { t, esc, num, gel, dt, mt, caps } from "../ui.js?v=ccca880.202611102005";
+import { t, esc, num, gel, dt, mt, caps } from "../ui.js?v=5aaf2cc.202611110820";
 
 const L = (k, p) => t("salary." + k, p);
 const MINUS = "−";

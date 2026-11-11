@@ -1,17 +1,17 @@
 // რუკა (maptab, plans/map-tab.md §2, §5; Otar's „Both" 10.11.2026, rulings Q1 b, Q2 a, Q3 b, Q4 a): one company's
 // drawing from mini/functions/mini/map.ts. Two papers of one drawing: ნახაზი (this file: our own SVG, no library, no tiles,
 // no network beyond the tab's request) and სატელიტი (views/map-sat.js, loaded only when its cell is pressed, M2).
-// Design C „ნახაზი": a survey sheet (light) / cyanotype (dark). The sheet: 1 the title cell with the view switch (.mp-seg);
+// Design C „ნახაზი": a survey sheet, black ink on paper (one look on every device - uifix 11.11). The sheet: 1 the title cell with the view switch (.mp-seg);
 // 2 the weather band (.mp-wx): today at the site and 9 day cells - tap a day and its verdicts move onto the blocks (the
 // აგრო tab's rules; nothing is judged here: map.ts marksOf takes the outlook's own verdicts per crop); 3 the sheets'
-// switch (farm | yard; Tbilisi | Georgia) and the drawing (.mp-sheet): north arrow, a surveyor's scale bar, parcels,
+// switch (farm | yard; the main company's land | Tbilisi | Georgia - uifix 11.11: it opens on its land) and the drawing (.mp-sheet): north arrow, a surveyor's scale bar, parcels,
 // blocks by hatch DIRECTION (almond 45°, pomegranate 135°, cypress beds vertical; never by density), assets, planned
 // things dashed with a ring, built with a check; 4 the plan legend with numbered symbols (.mp-leg); 5 a tapped
 // feature's sheet; 6 the title block (only the sources on screen).
 // The investor (the nursery's): map.ts sends only his rows, names in Russian / English, no code, no source, no
 // provisional word - this file prints the provisional lines only when the data carries them (admin and masters).
-import { t, esc, num, dt, mt, caps, gel, cut as cutT } from "../ui.js?v=ccca880.202611102005";
-import { effects } from "./agro.js?v=ccca880.202611102005";
+import { t, esc, num, dt, mt, caps, gel, cut as cutT } from "../ui.js?v=5aaf2cc.202611110820";
+import { effects } from "./agro.js?v=5aaf2cc.202611110820";
 
 const L = (k, p) => t("map." + k, p);
 const A = (k, p) => t("agro." + k, p);
@@ -60,8 +60,9 @@ const segDist = (x, y, [ax, ay], [bx, by]) => { const dx = bx - ax, dy = by - ay
 // a label point inside a polygon (the most inner of a 14 x 14 sample - the pole of inaccessibility, roughly), its pixel
 // box, or a point / the middle of a line
 // vw = the sheet's [0, 0, W, H]: a polygon cut by the sheet's edge is labelled in its visible part (the sheet's edge
-// counts as an edge), a line at its middle visible vertex
-function anchor(P, g, vw) {
+// counts as an edge), a line at its middle visible vertex; obs = pixel rings the point keeps clear of (the main company's
+// land: the parcel's name goes where no building stands - uifix)
+function anchor(P, g, vw, obs) {
   const [vx0, vy0, vx1, vy1] = vw || [-1e9, -1e9, 1e9, 1e9];
   if (g.type === "Point") { const [x, y] = P.px(g.coordinates); return { x, y, w: 0, h: 0, room: 0 }; }
   const polys = ringsOf(g).map((poly) => poly.map((r) => r.map((c) => P.px(c))));
@@ -75,9 +76,9 @@ function anchor(P, g, vw) {
   let best = { x: (x0 + x1) / 2, y: (y0 + y1) / 2, room: -1 };
   for (let i = 1; i < 16; i++) for (let j = 1; j < 16; j++) {
     const x = x0 + ((x1 - x0) * i) / 16, y = y0 + ((y1 - y0) * j) / 16;
-    if (!inRing(x, y, big[0]) || big.slice(1).some((h) => inRing(x, y, h))) continue;
+    if (!inRing(x, y, big[0]) || big.slice(1).some((h) => inRing(x, y, h)) || (obs && obs.some((r) => inRing(x, y, r)))) continue;
     let d = Math.min(x - vx0, vx1 - x, y - vy0, vy1 - y);
-    for (const r of big) for (let k = 0; k < r.length - 1; k++) d = Math.min(d, segDist(x, y, r[k], r[k + 1]));
+    for (const r of obs ? big.concat(obs) : big) for (let k = 0; k < r.length - 1; k++) d = Math.min(d, segDist(x, y, r[k], r[k + 1]));
     if (d > best.room) best = { x, y, room: d };
   }
   return { ...best, w: x1 - x0, h: y1 - y0 };
@@ -85,6 +86,8 @@ function anchor(P, g, vw) {
 
 // ---------------- the sheets of a company ----------------
 const SMALL = ["building", "well", "tank", "solar", "yard", "camera"];
+// the detail sheets, where every drawn thing gets its name or number: the farm's yard and the main company's land (uifix)
+const DETAIL = ["yard", "krtsanisi"];
 function sheetsOf(d) {
   const out = [];
   for (const s of d.sheets || []) {
@@ -135,8 +138,10 @@ function plan(co, d, sh, W, H) {
     + `<pattern id="${id("hx")}" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect class="pb" width="6" height="6"/><line class="pl" x1="0" y1="0" x2="0" y2="6"/><line class="pl" x1="0" y1="0" x2="6" y2="0"/></pattern>`
     + `<pattern id="${id("hs")}" width="4" height="4" patternUnits="userSpaceOnUse"><rect class="pb" width="4" height="4"/><line class="pl" x1="0" y1="2" x2="4" y2="2"/></pattern>`
     + `<pattern id="${id("hd")}" width="6" height="6" patternUnits="userSpaceOnUse"><rect class="pb" width="6" height="6"/><circle class="pd" cx="3" cy="3" r="1"/></pattern>`
+    // a greenhouse: glazing bars (a 5 px grid of hairlines)
+    + `<pattern id="${id("hg")}" width="5" height="5" patternUnits="userSpaceOnUse"><rect class="pb" width="5" height="5"/><line class="pg" x1="0" y1="0" x2="5" y2="0"/><line class="pg" x1="0" y1="0" x2="0" y2="5"/></pattern>`
     + `</defs>`;
-  const order = ["country", "district", "river", "canal", "lease", "parcel", "servitude", "block", "yard", "road", "fence", "solar", "tank", "building", "well", "camera", "pin_site", "pin_contract"];
+  const order = ["country", "district", "river", "canal", "lease", "parcel", "servitude", "block", "yard", "greenhouse", "road", "fence", "solar", "tank", "building", "well", "camera", "pin_site", "pin_contract"];
   // the main company: a district a care contract covers is hatched (45°), the kindergartens' districts dotted
   const hatchOf = new Map();
   for (const f of feats) if (f.kind === "pin_contract" && f.districts) for (const x of f.districts) if (hatchOf.get(x) !== "care") hatchOf.set(x, f.hatch || "care");
@@ -158,13 +163,14 @@ function plan(co, d, sh, W, H) {
       if (st && !f.districts) g += stSvg(st, x + 11, y - 9);
     }
     else if (k === "yard") g += `<path class="${cls}" d="${p}" style="fill:url(#${id("hx")})"/>`;
+    else if (k === "greenhouse") g += `<path class="${cls}" d="${p}" style="fill:url(#${id("hg")})" fill-rule="evenodd"/>`;
     else if (k === "solar" && !planned(f)) g += `<path class="${cls}" d="${p}" style="fill:url(#${id("hs")})"/>`;
     else if (k === "road") g += `<path class="road-o" d="${p}"/><path class="road-i" d="${p}"/>`;
     else if (k === "well") { const [x, y] = P.px(f.geom.coordinates); g += `<circle class="${cls}" cx="${f1(x)}" cy="${f1(y)}" r="5"/><circle class="wc" cx="${f1(x)}" cy="${f1(y)}" r="1.6"/>`; }
     else if (k === "camera") { const [x, y] = P.px(f.geom.coordinates); g += `<rect class="${cls}" x="${f1(x - 3.5)}" y="${f1(y - 3.5)}" width="7" height="7"/>`; }
     else g += `<path class="${cls}" d="${p}" fill-rule="evenodd"/>`;
     // planned: a ring at its middle; built with a date: a check (ink - the weather's ✓ is the green one)
-    const a = anchor(P, f.geom, VW);
+    const a = anchor(P, f.geom, VW, sh.id === "krtsanisi" && k === "parcel" ? feats.filter((o) => o !== f).flatMap((o) => ringsOf(o.geom).flatMap((poly) => poly.map((r) => r.map((c) => P.px(c))))) : null);
     const onSheet = a.x > 4 && a.x < W - 4 && a.y > 4 && a.y < H - 4;
     anchors.set(f.id, a);
     if (planned(f) && k !== "fence" && k !== "camera") g += `<circle class="ring" cx="${f1(a.x)}" cy="${f1(a.y)}" r="3.5"/>`;
@@ -177,14 +183,14 @@ function plan(co, d, sh, W, H) {
     // the canal, the fence and the cameras by the legend only.
     if (k === "canal" || k === "fence" || k === "camera" || k === "country") continue;
     const nm = nameOf(f, lang), lines = String(nm).split(" · "), lw = Math.max(...lines.map((s) => s.length)) * (lang === "ka" ? 6.6 : 5.8), lh = lines.length * 12;
-    const named = ["parcel", "lease", "river", "servitude", "district"].includes(k) || (sh.id === "yard" && k === "block");
+    const named = ["parcel", "lease", "river", "servitude", "district"].includes(k) || (sh.id === "yard" && k === "block"), detail = DETAIL.includes(sh.id);
     if (!onSheet) continue;
     const fits = k === "river" || (a.room >= lh / 2 + 2 && a.room * 3 >= lw);
     if (named && fits) {
       const y0 = a.y - (lines.length - 1) * 6 + 4, lx = Math.max(lw / 2 + 4, Math.min(W - lw / 2 - 4, a.x));
       tx += `<text class="tx${k === "river" ? " it" : ""}" x="${f1(lx)}" y="${f1(y0)}">${lines.map((s, i) => `<tspan x="${f1(lx)}" dy="${i ? 12 : 0}">${esc(lab(s, lang))}</tspan>`).join("")}</text>`;
       boxes.push([lx - lw / 2, y0 - 10, lx + lw / 2, y0 + (lines.length - 1) * 12 + 3]);
-    } else if (k !== "district" && (sh.id === "yard" ? true : k !== "block" && k !== "yard" && !SMALL.includes(k))) {
+    } else if (k !== "district" && (detail ? true : k !== "block" && k !== "yard" && !SMALL.includes(k))) {
       const n = nums.length + 1; nums.push(f); num_.set(f.id, n);
       let bx = a.x + (k === "well" ? 7 : k === "pin_contract" && !f.districts ? -12 : 0), by = a.y - (k === "well" ? 7 : 0);
       while (taken.some(([tx0, ty0]) => Math.abs(tx0 - bx) < 15 && Math.abs(ty0 - by) < 15)) bx += 16;   // pins at one point side by side
@@ -268,6 +274,7 @@ function legend(co, d, sh, nums, view) {
     for (const c of ["almond", "pomegranate", "cypress"]) if (has("block", (f) => f.crop === c)) items.push([pat(PAT[c]), L("leg_" + c)]);
     if (has("yard")) items.push([pat("hx"), L("leg_yard")]);
   }
+  if (has("greenhouse")) items.push([pat("hg"), L("leg_greenhouse")]);
   if (has("building", (f) => f.status !== "planned")) items.push([sw("building"), L("leg_building")]);
   if (has("road")) items.push([sw("", `<path class="road-o" d="M1,6H21"/><path class="road-i" d="M1,6H21"/>`), L("leg_road")]);
   if (has("river")) items.push([sw("", `<path class="river" d="M1,6H21"/>`), L("leg_river")]);
@@ -280,8 +287,9 @@ function legend(co, d, sh, nums, view) {
   if (has("pin_site")) items.push([sw("", `<rect class="pin_site" x="6" y="1" width="10" height="10"/>`), L("leg_site")]);
   if (has("pin_contract", (f) => !f.districts)) items.push([sw("", `<rect class="pin_contract" x="6.5" y="1.5" width="9" height="9"/>`), L("leg_pin")]);
   const isMain = d.company === "main", stOf = (fid) => { const pn = (d.pins || []).find((x) => x.id === fid); return pn && pn.contract ? pn.contract.status : null; };
-  const marks = isMain ? `<div class="mp-lm">${["running", "soon", "care", "overdue"].map((k) => `<span><svg class="mp-k" viewBox="0 0 22 12" aria-hidden="true">${stSvg(k, 11, 6)}</svg>${esc(L("st_" + k))}</span>`).join("")}</div>` : `<div class="mp-lm"><span><i class="dot bad"></i>${esc(A("w_bad"))}</span><span><i class="dot warn"></i>${esc(A("w_warn"))}</span><span><i class="dot info"></i>${esc(A("w_info"))}</span><span><i class="dot ok"></i>${esc(L("w_cold"))}</span></div>`;
-  const stWord = (f) => (isMain && stOf(f.id) ? ` <em>${esc(L("st_" + stOf(f.id)))}</em>` : f.status === "planned" ? ` <em>${esc(L("st_planned"))}</em>` : f.status === "in_progress" ? ` <em>${esc(L("st_in_progress"))}</em>` : "") + (f.region ? ` <em>${esc(L("region"))}</em>` : "");
+  const pinned = feats.some((f) => f.kind === "pin_contract");
+  const marks = isMain ? (!pinned ? "" : `<div class="mp-lm">${["running", "soon", "care", "overdue"].map((k) => `<span><svg class="mp-k" viewBox="0 0 22 12" aria-hidden="true">${stSvg(k, 11, 6)}</svg>${esc(L("st_" + k))}</span>`).join("")}</div>`) : `<div class="mp-lm"><span><i class="dot bad"></i>${esc(A("w_bad"))}</span><span><i class="dot warn"></i>${esc(A("w_warn"))}</span><span><i class="dot info"></i>${esc(A("w_info"))}</span><span><i class="dot ok"></i>${esc(L("w_cold"))}</span></div>`;
+  const stWord = (f) => (isMain && stOf(f.id) ? ` <em>${esc(L("st_" + stOf(f.id)))}</em>` : f.status === "planned" ? ` <em>${esc(L("st_planned"))}</em>` : f.status === "in_progress" ? ` <em>${esc(L("st_in_progress"))}</em>` : "") + (f.region ? ` <em>${esc(L("region"))}</em>` : "") + (f.from_photo && isMain ? ` <em>${esc(L("from_photo_s"))}</em>` : "");
   const numbered = nums.length ? `<ol class="mp-nl">${nums.map((f, i) => `<li data-mp-f="${esc(f.id)}" class="${f.id === ST.sel[co] ? "on" : ""}"><b>${i + 1}</b><span>${esc(nameOf(f, lang))}${stWord(f)}</span></li>`).join("")}</ol>` : "";
   // the contracts with no place (city-wide), never a guessed point
   const un = isMain && sh.site === "tbilisi" && (d.unplaced || []).length ? `<div class="mp-un"><div class="mp-l">${esc(lab(L("no_addr"), lang))}</div>${d.unplaced.map((c) => `<div class="mp-kv" data-mp-c="${esc(c.id)}"><span>${esc(cutT(c.subject, 70))}</span><b>${c.remaining != null ? esc((c.approx ? "≈ " : "") + gel(c.remaining)) : "—"}</b></div>`).join("")}</div>` : "";
@@ -340,14 +348,15 @@ function featureSheet(co, d) {
 function titleBlock(co, d, view) {
   const w = d.weather || {}, lines = [];
   if (d.company === "nursery") lines.push([L("tb_draw"), d.sources ? L("tb_draw_v_full") : L("tb_draw_v")]);
-  if (d.company === "main") lines.push([L("tb_draw"), L(ST.sheet[co] === "georgia" ? "tb_draw_ge" : "tb_draw_tb")]);
+  const land = d.company === "main" && ST.sheet[co] === "krtsanisi";
+  if (d.company === "main") lines.push([L("tb_draw"), L(ST.sheet[co] === "georgia" ? "tb_draw_ge" : land ? "tb_draw_land" : "tb_draw_tb")]);
   if (d.company === "main" && ST.sheet[co] === "georgia") lines.push([A("tb_src"), L("wx_georgia")]);
-  if (d.company === "main" && (d.pins || []).length) lines.push([L("tb_pins"), L("tb_pins_v")]);
+  if (d.company === "main" && !land && (d.pins || []).length) lines.push([L("tb_pins"), L("tb_pins_v")]);
   if (d.sources && d.features.some((f) => f.kind === "block")) lines.push([L("tb_plant"), L("tb_plant_v")]);
   if (w.state === "ok") lines.push([A("tb_src"), A("attr") + " · " + L("tb_fc", { t: w.fetched_at ? dt(String(w.fetched_at).slice(0, 10)) + " " + hhmm(w.fetched_at) : "—" })]);
   if (view === "sat") lines.push([L("tb_ortho"), L("tb_ortho_v")]);
   if (view === "sat" && ST.ndvi[co] && d.ndvi && d.ndvi.image) lines.push(["NDVI", L("tb_ndvi_v", { y: String(d.ndvi.image.day).slice(0, 4) })]);
-  if (d.features.some((f) => f.provisional)) lines.push([L("tb_prov"), L("tb_prov_v")]);
+  if (d.company === "main" ? land && d.features.some((f) => f.site === "krtsanisi" && f.provisional) : d.features.some((f) => f.provisional)) lines.push([L("tb_prov"), L(d.company === "main" ? "tb_prov_v_m" : "tb_prov_v")]);
   return `<div class="mp-tb">${lines.map(([k, v]) => `<div><span>${esc(k)}</span>${esc(v)}</div>`).join("")}</div>`;
 }
 
@@ -481,7 +490,7 @@ html:not([lang="ka"]) .mp-l,html:not([lang="ka"]) .mp-sh button,html:not([lang="
 .mp-days button.on{background:var(--q-invert);color:var(--q-on-invert)}.mp-days button.on b,.mp-days button.on em.lo{color:var(--q-on-invert)}
 .mp-cap{padding:5px 10px 6px;border-top:1px solid var(--q-rule-light);font-size:11.5px;line-height:15px;color:var(--q-muted)}
 .mp-sh{display:flex;border:1.5px solid var(--q-rule);border-bottom:0;width:max-content;max-width:100%}
-.mp-sheet{position:relative;border:1.5px solid var(--q-rule);background:var(--q-surface);overflow:hidden;min-height:300px}
+.mp-sheet{position:relative;isolation:isolate;z-index:0;border:1.5px solid var(--q-rule);background:var(--q-surface);overflow:hidden;min-height:300px}
 .mp-svg{display:block;width:100%;height:100%}
 .mp-svg .pb{fill:var(--q-viz-alt)}.mp-svg .pl{stroke:var(--q-viz-fill);stroke-width:1}
 .mp-svg .parcel{fill:none;stroke:var(--q-rule);stroke-width:1.5}
@@ -489,6 +498,7 @@ html:not([lang="ka"]) .mp-l,html:not([lang="ka"]) .mp-sh button,html:not([lang="
 .mp-svg .servitude{fill:none;stroke:var(--q-ink-2);stroke-width:1;stroke-dasharray:2 3}
 .mp-svg .block{stroke:var(--q-ink);stroke-width:.8}
 .mp-svg .yard{stroke:var(--q-ink);stroke-width:1}
+.mp-svg .greenhouse{stroke:var(--q-ink);stroke-width:1.2}.mp-svg .pg{stroke:var(--q-ink-2);stroke-width:.6}
 .mp-svg .river{fill:none;stroke:var(--q-info);stroke-width:1.5;stroke-dasharray:7 3 2 3}
 .mp-svg .canal{fill:none;stroke:var(--q-info);stroke-width:1;stroke-dasharray:4 2}
 .mp-svg .road-o{fill:none;stroke:var(--q-ink);stroke-width:4.5;stroke-linejoin:round}.mp-svg .road-i{fill:none;stroke:var(--q-surface);stroke-width:2;stroke-linejoin:round}
@@ -517,7 +527,7 @@ html:not([lang="ka"]) .mp-l,html:not([lang="ka"]) .mp-sh button,html:not([lang="
 .mp-k{width:22px;height:12px;flex:none}
 .mp-k .parcel,.mp-k .lease,.mp-k .servitude,.mp-k .building,.mp-k .block{stroke-width:1.2}
 .mp-k .parcel{fill:none;stroke:var(--q-rule)}.mp-k .lease{fill:none;stroke:var(--q-ink-2);stroke-dasharray:4 2}.mp-k .servitude{fill:none;stroke:var(--q-ink-2);stroke-dasharray:2 2}
-.mp-k .building{fill:var(--q-ink);stroke:var(--q-ink)}.mp-k .block{stroke:var(--q-ink)}.mp-k .pln{fill:none;stroke:var(--q-ink);stroke-dasharray:3 2}
+.mp-k .building{fill:var(--q-ink);stroke:var(--q-ink)}.mp-k .greenhouse{stroke:var(--q-ink);stroke-width:1.2}.mp-k .pg{stroke:var(--q-ink-2);stroke-width:.6}.mp-k .block{stroke:var(--q-ink)}.mp-k .pln{fill:none;stroke:var(--q-ink);stroke-dasharray:3 2}
 .mp-k .road-o{stroke:var(--q-ink);stroke-width:4.5}.mp-k .road-i{stroke:var(--q-surface);stroke-width:2}.mp-k .river{stroke:var(--q-info);stroke-width:1.5;stroke-dasharray:5 2}
 .mp-k .district{fill:none;stroke:var(--q-ink-2);stroke-width:1}.mp-k .pin_site{fill:var(--q-main);stroke:var(--q-ink);stroke-width:1.2}.mp-k .pin_contract{fill:var(--q-ink)}
 .mp-k .mk.bad{fill:var(--q-crit)}.mp-k .mk.warn{fill:var(--q-warn)}.mp-k .mk.info{fill:var(--q-surface);stroke:var(--q-info);stroke-width:1.5}.mp-k .mk.okk{fill:none;stroke:var(--q-good);stroke-width:2.2}.mp-k .pd{fill:var(--q-viz-fill)}

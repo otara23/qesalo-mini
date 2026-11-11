@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="only light">
 <title>ქესალო</title>
 <!-- the `mini` Edge Function (mini/app.js reads it; the doctor's Pages check looks for it in this file) -->
 <meta name="qesalo-api" content="https://owgvoonnsccujzpbprpw.supabase.co/functions/v1/mini">
@@ -12,13 +13,13 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Georgian:wdth,wght@62.5..100,400..800&family=Noto+Sans:wdth,wght@62.5..100,400..800&display=swap">
 <style>
 /* The panel in design C „ნახაზი" (wave design2, 8.11.2026; design/phase1/C-plan/DESIGN.md, the cards' lib/card-html.mjs):
-   light = the survey sheet (drawing paper, carbon ink), dark = the cyanotype blueprint; Telegram's colorScheme picks the
-   set. Our own tokens, never raw themeParams for text (4.5:1 checked for every text pair, both themes). One family,
+   ONE look on every device = the survey sheet (drawing paper, carbon ink), whatever Telegram's colorScheme or the phone's
+   dark mode says (uifix 11.11.2026, Otar: the phone showed the old dark „cyanotype" set in navy, the web black and white;
+   that set is gone). Our own tokens, never raw themeParams for text (4.5:1 checked for every text pair). One family,
    Noto Sans Georgian, at three widths (wdth 62.5 display figures and titles, 75 Mtavruli labels, 100 reading text);
    Mtavruli is emitted as code points (mt() below), never by text-transform. Zero radius; nothing eases (state changes
    are two-frame steps, 90 ms). Status = a shape plus a word, never colour alone; colour never sits on a number. */
-:root{--q-canvas:#E9EAE5;--q-surface:#F8F8F5;--q-surface-2:#EDEEE9;--q-rule:#141615;--q-rule-light:#C4C7BF;--q-ink:#111312;--q-ink-2:#2D312F;--q-muted:#555A56;--q-accent:#1C46A8;--q-focus:#1C46A8;--q-invert:#111312;--q-on-invert:#F8F8F5;--q-good:#1B6E2E;--q-good-bg:#DDEEDF;--q-warn:#8A5100;--q-warn-bg:#F6E7C6;--q-crit:#B8360A;--q-crit-bg:#F8DCD3;--q-info:#555A56;--q-nursery:#8C2A6E;--q-main:#5E9A2F;--q-viz-fill:#111312;--q-viz-alt:#F8F8F5;--q-safe-top:0px;--q-safe-bottom:0px;--ff:'Noto Sans Georgian','Noto Sans',system-ui,sans-serif;--step:steps(2,jump-none)}
-:root[data-theme="dark"]{--q-canvas:#0B2140;--q-surface:#0F284B;--q-surface-2:#143159;--q-rule:#DCE6F5;--q-rule-light:#34557F;--q-ink:#F2F6FC;--q-ink-2:#CEDAEC;--q-muted:#A3B6D2;--q-accent:#FFD66B;--q-focus:#FFD66B;--q-invert:#F2F6FC;--q-on-invert:#0B2140;--q-good:#3FBF7F;--q-good-bg:#123B3A;--q-warn:#FFC46B;--q-warn-bg:#3A3420;--q-crit:#FF8A50;--q-crit-bg:#4A2230;--q-info:#A3B6D2;--q-nursery:#E070B8;--q-main:#D4E57A;--q-viz-fill:#F2F6FC;--q-viz-alt:#0F284B;color-scheme:dark}
+:root{--q-canvas:#E9EAE5;--q-surface:#F8F8F5;--q-surface-2:#EDEEE9;--q-rule:#141615;--q-rule-light:#C4C7BF;--q-ink:#111312;--q-ink-2:#2D312F;--q-muted:#555A56;--q-accent:#1C46A8;--q-focus:#1C46A8;--q-invert:#111312;--q-on-invert:#F8F8F5;--q-good:#1B6E2E;--q-good-bg:#DDEEDF;--q-warn:#8A5100;--q-warn-bg:#F6E7C6;--q-crit:#B8360A;--q-crit-bg:#F8DCD3;--q-info:#555A56;--q-nursery:#8C2A6E;--q-main:#5E9A2F;--q-viz-fill:#111312;--q-viz-alt:#F8F8F5;--q-safe-top:0px;--q-safe-bottom:0px;--ff:'Noto Sans Georgian','Noto Sans',system-ui,sans-serif;--step:steps(2,jump-none);color-scheme:only light}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--q-canvas);color:var(--q-ink)}
 body{font:400 15px/20px var(--ff);font-stretch:100%;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
@@ -193,6 +194,6 @@ html:not([lang="ka"]) .card-t,html:not([lang="ka"]) .hero-l,html:not([lang="ka"]
     <button class="tch l" id="tch-l" data-tch="-1" hidden>‹</button><button class="tch r" id="tch-r" data-tch="1" hidden>›</button>
   </div>
 </div>
-<script type="module" src="app.js?v=ccca880.202611102005"></script>
+<script type="module" src="app.js?v=5aaf2cc.202611110820"></script>
 </body>
 </html>
