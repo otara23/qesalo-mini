@@ -1,2 +1,2 @@
 // შესყიდვები (the main company; the bot's card M4): the same view as გაყიდვები, d.side = "purchase".
-export { default } from "./sales.js?v=41e520c.202611110831";
+export { default } from "./sales.js?v=d919539.202611110839";

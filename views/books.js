@@ -16,8 +16,8 @@
 // face (lag, new lines, the year card, the class x month matrix, bank / rs.ge <-> books) sits behind „დეტალური ხედი".
 // The investor (the nursery only): the sheet alone, his accounts without codes and without a drill. No sheet for a person
 // (the function's walled rule, or a failed read): the tab as it was. Numbers and walls: mini/functions/mini/bsheet.ts.
-import { t, tOr, lang, esc, num, gel, dt, card, row, stat, mt } from "../ui.js?v=41e520c.202611110831";
-import { section, accountRow, keyOf, isOpen, slot, moreOf, drillCss, cpt, monShort, amt, sgn, redrawView } from "./drill-ui.js?v=41e520c.202611110831";
+import { t, tOr, lang, esc, num, gel, dt, card, row, stat, mt } from "../ui.js?v=d919539.202611110839";
+import { section, accountRow, keyOf, isOpen, slot, moreOf, drillCss, cpt, monShort, amt, sgn, redrawView } from "./drill-ui.js?v=d919539.202611110839";
 
 const L = (k, p) => t("books." + k, p);
 const V = { side: "d", detail: {}, more: {} };   // the matrix reading: d = debit turnover, c = credit turnover; detail[co] = the fold open; more[key] = accounts shown
@@ -190,7 +190,8 @@ function render(d, co) {
   // no sheet for this person or a failed read: the tab as it was (a read error says so in one line, a wall says nothing)
   if (!bs || bs.held || bs.err || !bs.blocks) return (bs && bs.err ? `<div class="note">${esc(B("err"))}</div>` : "") + old;
   const open = !!V.detail[co];
-  return sheet(d, co) + `<button class="bs-fold${open ? " on" : ""}" data-bk-detail="${esc(co)}" aria-expanded="${open}"><span>${esc(B("detail"))}</span><span class="chev">›</span></button>` + (open ? old : "");
+  return sheet(d, co) + `<button class="bs-fold${open ? " on" : ""}" data-bk-detail="${esc(co)}" aria-expanded="${open}"><span>${esc(B("detail"))}</span><span class="chev">›</span></button>`
+    + (open ? (d.detail_err ? `<div class="note">${esc(t("drill.err"))}</div>` : "") + old : "");   // detail_err: a read of the fold failed (the function kept the sheet)
 }
 export default function view(d, me, _t, co) { css(); drillCss(); return section("books", me, co, d, render); }
 
