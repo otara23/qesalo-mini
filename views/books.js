@@ -16,8 +16,8 @@
 // face (lag, new lines, the year card, the class x month matrix, bank / rs.ge <-> books) sits behind „დეტალური ხედი".
 // The investor (the nursery only): the sheet alone, his accounts without codes and without a drill. No sheet for a person
 // (the function's walled rule, or a failed read): the tab as it was. Numbers and walls: mini/functions/mini/bsheet.ts.
-import { t, tOr, lang, esc, num, gel, dt, card, row, stat, mt } from "../ui.js?v=25cb370.202611111231";
-import { section, accountRow, keyOf, isOpen, slot, moreOf, drillCss, cpt, monShort, amt, sgn, redrawView } from "./drill-ui.js?v=25cb370.202611111231";
+import { t, tOr, lang, esc, num, gel, dt, card, row, stat, mt } from "../ui.js?v=299223d.202611111235";
+import { section, accountRow, keyOf, isOpen, slot, moreOf, drillCss, cpt, monShort, amt, sgn, redrawView } from "./drill-ui.js?v=299223d.202611111235";
 
 const L = (k, p) => t("books." + k, p);
 const V = { side: "d", detail: {}, more: {} };   // the matrix reading: d = debit turnover, c = credit turnover; detail[co] = the fold open; more[key] = accounts shown

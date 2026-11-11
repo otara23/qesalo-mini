@@ -2,7 +2,7 @@
 // taxref (11.11.2026, schema/057): the card is read on the portal by hand, so v_v6_tax's card_balance = the newest
 // snapshot less the Treasury's overpayment refunds that reached the bank after it (card_snapshot, card_refunds,
 // card_refund_on); when there is one, the hero says so in one line and the comparison shows the three steps.
-import { t, num, gel, dt, card, row } from "../ui.js?v=25cb370.202611111231";
+import { t, num, gel, dt, card, row } from "../ui.js?v=299223d.202611111235";
 
 export default function view(d) {
   const tx = d.tax || {}; const v = d.vat || [];
@@ -13,7 +13,7 @@ export default function view(d) {
   s += card(t("tax.vs"), "", row(t("tax.card"), dt(tx.card_as_of), gel(ref ? tx.card_snapshot : tx.card_balance, 2))
     + (ref ? row(t("tax.refund"), dt(tx.card_refund_on), `−${num(tx.card_refunds, 2)} ₾`) + row(t("tax.now"), "", gel(tx.card_balance, 2)) : "")
     + row(t("tax.books"), "", gel(tx.books_tax_account, 2))
-    + row(t("tax.diff"), "", `<span class="${Math.abs(diff) < 5 ? "pos" : "neg"}">${num(diff, 2)} ₾</span>`)
+    + row(t("tax.diff"), ref && Math.abs(diff + Number(tx.card_refunds)) < 5 ? t("tax.books_pending") : "", `<span class="${Math.abs(diff) < 5 ? "pos" : "neg"}">${num(diff, 2)} ₾</span>`)
     + row(t("tax.input_vat"), "", gel(tx.input_vat_rsge, 2)));
   if (v.length) {
     const mx = Math.max(...v.map((x) => Number(x.vat)));

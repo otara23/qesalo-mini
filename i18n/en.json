@@ -321,6 +321,7 @@
   "adj": "The Treasury refunded the overpayment on {d}: {r}, taken off the card's balance",
   "refund": "Treasury refund",
   "now": "Card after the refund",
+  "books_pending": "The difference is the Treasury's refund, not yet recorded in the books.",
   "note": "Own-grown agricultural produce is VAT-exempt with the right to credit input VAT (Tax Code, Art. 172(u)), so the overpayment is refundable."
  },
  "wc": {

@@ -2,7 +2,7 @@
 // otar-1011 §1.4 (Otar 10.11): no „ყურადსაღები" card, no capex note and no „ბანკის მონაცემი … დღისაა" banner - the alerts
 // live in their pushes and on the შეტყობინებები tab (the function still counts them for its badge), a stale bank feed is
 // the doctor's business; the hero, the four figures and the NBG chips as before.
-import { t, num, gel, dt, stat } from "../ui.js?v=25cb370.202611111231";
+import { t, num, gel, dt, stat } from "../ui.js?v=299223d.202611111235";
 
 export default function view(d) {
   const h = d.home || {};
