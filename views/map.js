@@ -10,8 +10,8 @@
 // feature's sheet; 6 the title block (only the sources on screen).
 // The investor (the nursery's): map.ts sends only his rows, names in Russian / English, no code, no source, no
 // provisional word - this file prints the provisional lines only when the data carries them (admin and masters).
-import { t, esc, num, dt, mt, caps, gel, cut as cutT } from "../ui.js?v=299223d.202611111235";
-import { effects } from "./agro.js?v=299223d.202611111235";
+import { t, esc, num, dt, mt, caps, gel, cut as cutT } from "../ui.js?v=80ca9ef.202611111239";
+import { effects } from "./agro.js?v=80ca9ef.202611111239";
 
 const L = (k, p) => t("map." + k, p);
 const A = (k, p) => t("agro." + k, p);

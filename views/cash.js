@@ -16,7 +16,7 @@
 // the movements by day from ./functions/mini/moves.ts (schema/042), 200 at a time. Inflows carry the 3 px ink bar at the
 // left, outflows none; the direction is the bar + the word + the sign, never a colour. The filter lives here and goes
 // with every load of the tab (params()), so a company switch and the live refresh keep it; „ორივე" = one card per company.
-import { t, tOr, esc, num, gel, dt, tm, card, row, barRow, span, fxAmt, SYM, caps, stat, mt } from "../ui.js?v=299223d.202611111235";
+import { t, tOr, lang, esc, num, gel, dt, tm, card, row, barRow, span, fxAmt, SYM, caps, stat, mt } from "../ui.js?v=80ca9ef.202611111239";
 
 const ymd = (s) => { const d = new Date(s); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
 const at = (asOf, fetched) => (fetched && asOf && ymd(fetched) === String(asOf).slice(0, 10) ? tm(fetched) : dt(asOf));
@@ -70,7 +70,7 @@ const dayHead = (d) => `${dt(d)} · ${(t("cash.wd") || [])[new Date(d + "T00:00:
 // a word the function sends as w: cash.w.<w>, else the kind's word cash.kind.<w> (w: "wages" - a salary line „ხელფასი"
 // alone for a level outside lib/cash-kinds.json wage_names, Otar's Q23)
 const wWord = (w, dflt) => tOr("cash.w." + w, tOr("cash.kind." + w, dflt));
-const whoText = (x) => (x.who ? esc(x.who) : x.w === "bank" ? esc(srcName(x.bank)) : esc(wWord(x.w, "—")));
+const whoText = (x) => (x.who ? esc((x.names && x.names[lang()]) || x.who) : x.w === "bank" ? esc(srcName(x.bank)) : esc(wWord(x.w, "—")));
 // the row: who; „შემოვიდა · {bank} · {kind}" (no kind where who already says it: an exchange, own accounts); for admin /
 // masters the bank's purpose text under it unless it only repeats the kind or who („ხელფასი", „ვალუტის გაცვლა")
 const norm = (a) => String(a || "").replace(/[\s.]+/g, " ").trim().toLowerCase();

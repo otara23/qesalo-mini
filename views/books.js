@@ -16,8 +16,8 @@
 // face (lag, new lines, the year card, the class x month matrix, bank / rs.ge <-> books) sits behind „დეტალური ხედი".
 // The investor (the nursery only): the sheet alone, his accounts without codes and without a drill. No sheet for a person
 // (the function's walled rule, or a failed read): the tab as it was. Numbers and walls: mini/functions/mini/bsheet.ts.
-import { t, tOr, lang, esc, num, gel, dt, card, row, stat, mt } from "../ui.js?v=299223d.202611111235";
-import { section, accountRow, keyOf, isOpen, slot, moreOf, drillCss, cpt, monShort, amt, sgn, redrawView } from "./drill-ui.js?v=299223d.202611111235";
+import { t, tOr, lang, esc, num, gel, dt, card, row, stat, mt } from "../ui.js?v=80ca9ef.202611111239";
+import { section, accountRow, keyOf, isOpen, slot, moreOf, drillCss, cpt, monShort, amt, sgn, redrawView } from "./drill-ui.js?v=80ca9ef.202611111239";
 
 const L = (k, p) => t("books." + k, p);
 const V = { side: "d", detail: {}, more: {} };   // the matrix reading: d = debit turnover, c = credit turnover; detail[co] = the fold open; more[key] = accounts shown
@@ -175,7 +175,8 @@ function classAccounts(d, co, c, key, block) {
   for (const a of acc.slice(0, more)) {
     if (x.investor || a.hidden || a.carried || !a.account) {
       const w = a.w ? (a.w.startsWith("pnl.") ? tOr("books.cls." + a.w.slice(4), "") : B(a.w)) : "";
-      const nm = (a.person ? B("person") : a.hidden ? B("hidden_row") : a.carried ? B("carried") : w || a.name || B("unnamed")) + (a.n > 1 ? " · " + num(a.n) : "");
+      // invfix 11.11: a name in Georgian letters comes with its ru / en reading (translit.ts) - the page's language's
+      const nm = (a.person ? B("person") : a.hidden ? B("hidden_row") : a.carried ? B("carried") : w || (a.names && a.names[lang()]) || a.name || B("unnamed")) + (a.n > 1 ? " · " + num(a.n) : "");
       s += `<div class="dr-a no"><span class="n">${esc(nm)}</span><span class="v">${right(a)}</span></div>`;
     } else s += accountRow(ctx, a, right(a), "");
   }

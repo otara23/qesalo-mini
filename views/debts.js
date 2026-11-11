@@ -10,7 +10,7 @@
 // Design C „ნახაზი": framed sheet, two figures as the hero cells (one per side - never a difference), a sort control
 // (amount | age) as a segmented strip, rows with a scale bar (share of the largest row of that list), tap = the
 // documents sheet (the shell's .det), the title block with sources and the rule at the end. Nothing eases.
-import { t, esc, num, gel, dt, caps, cut } from "../ui.js?v=299223d.202611111235";
+import { t, lang, esc, num, gel, dt, caps, cut } from "../ui.js?v=80ca9ef.202611111239";
 
 const L = (k, p) => t("debts." + k, p);
 const S = { me: null, secs: [], pass: false, sort: "amount", all: {} };
@@ -28,7 +28,7 @@ function age(r, opens) {
 }
 const kindWord = (r) => L("kind." + r.kind);
 // debug-1011 #9: a private person the investor sees as „ფიზიკური პირი" - the word ფულის მოძრაობა draws (cash.w.person)
-const label = (r) => (r.name ? esc(r.name) : r.person ? esc(t("cash.w.person")) : esc(kindWord(r)));
+const label = (r) => (r.name ? esc((r.names && r.names[lang()]) || r.name) : r.person ? esc(t("cash.w.person")) : esc(kindWord(r)));
 const reasonWord = (r) => (r.reason ? L("reason." + r.reason) : "");
 // the tax row's parts on one line: the three largest by name, then „… ±rest" so the parts shown plus the rest are the
 // row's amount on screen to the lari (rounded as drawn; debug-1011 #10: +29 075 +3 940 −1 875 = 31 140 beside 31 488)
