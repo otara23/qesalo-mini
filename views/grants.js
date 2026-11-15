@@ -4,7 +4,7 @@
 // its evidence and date, the rule and its act and article, „(მეორადი წყარო)" for a secondary source, „(სურათიდან)" for a
 // figure read off an image, and the review mark while a change of its act waits. Facts only, never advice. The data is
 // mini/functions/mini/grants.ts (grants_live, written by the PC's checker lib/grants/check.mjs).
-import { t, esc, num, card, stat, detRow, dy } from "../ui.js?v=8532187.202611151736";
+import { t, esc, num, card, stat, detRow, dy } from "../ui.js?v=a706252.202611151758";
 
 const isOpen = (r) => r.status === "open" || r.status === "rolling";
 const DOT = { fail: "bad", unknown: "warn", pass: "ok", info: "info" };

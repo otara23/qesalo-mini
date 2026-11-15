@@ -1,5 +1,5 @@
 // ტენდერები (the main company; the bot's card M8): the current year's tenders from the KB (Tender Monitor).
-import { t, esc, gel, dt, card, row, stat, cut } from "../ui.js?v=8532187.202611151736";
+import { t, esc, gel, dt, card, row, stat, cut } from "../ui.js?v=a706252.202611151758";
 
 const STATUS = { won: "p-ok", lost: "p-bad", in_progress: "p-warn", failed: "p-grey" };
 
