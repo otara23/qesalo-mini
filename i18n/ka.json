@@ -17,6 +17,7 @@
   "bank_bog": "BOG ბანკი (ნერსერი)", "bank_bog_main": "BOG ბანკი (მწვანე სახლი)", "bank_procredit_main": "ProCredit ბანკი (მწვანე სახლი)", "bank_tbc_main": "TBC ბანკი (მწვანე სახლი)",
   "mail": "ფოსტა", "fx": "ეროვნული ბანკის კურსი", "weather": "ამინდი", "controls": "კონტროლები", "alerts": "სიგნალები (A1-A18)", "bot": "ბოტი", "zaza": "ზაზას სია",
   "tender_radar": "ტენდერების რადარი (procurement.gov.ge)", "calendar": "ვადების კალენდარი (ცოდნის ბაზა)",
+  "grant_radar": "გრანტების რადარი (matsne, rda.gov.ge, დონორები)",
   "bank_balances_bog": "BOG ნაშთები ყოველ წუთს (ორივე კომპანია)", "bank_balances_tbc": "TBC ნაშთები ყოველ წუთს (მწვანე სახლი)", "bank_balances_procredit": "ProCredit ნაშთები ყოველ წუთს (მწვანე სახლი)",
   "doctor": "ექიმი (ყოველ 5 წუთში ყველაფერს ამოწმებს)", "doctor_pc": "ექიმი: ეს კომპიუტერი (ამოცანები, დისკები, Tailscale)", "doctor_db": "ექიმი: Supabase (ბაზა, ზომა, Realtime)", "doctor_vercel": "ექიმი: Vercel (ბოტის პასუხები)", "doctor_edge": "ექიმი: პანელის Edge Function", "doctor_pages": "ექიმი: პანელის გვერდი (GitHub Pages)", "doctor_ai": "ექიმი: OpenRouter, ElevenLabs, კითხვების ბიუჯეტი", "doctor_kb": "ექიმი: ცოდნის ბაზის ღამის აწყობა და deploy", "oris_opening": "ORIS საწყისი ნაშთები (ვალები)"
  },

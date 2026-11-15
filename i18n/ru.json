@@ -98,6 +98,7 @@
   "bot": "Бот",
   "zaza": "Список Зазы",
   "tender_radar": "Радар тендеров (procurement.gov.ge)",
+  "grant_radar": "Радар грантов (matsne, rda.gov.ge, доноры)",
   "calendar": "Календарь сроков (база знаний)",
   "bank_balances_bog": "Остатки BOG ежеминутно (обе компании)",
   "bank_balances_tbc": "Остатки TBC ежеминутно (Мцване Сахли)",
