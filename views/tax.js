@@ -2,7 +2,7 @@
 // taxref (11.11.2026, schema/057): the card is read on the portal by hand, so v_v6_tax's card_balance = the newest
 // snapshot less the Treasury's overpayment refunds that reached the bank after it (card_snapshot, card_refunds,
 // card_refund_on); when there is one, the hero says so in one line and the comparison shows the three steps.
-import { t, num, gel, dt, card, row } from "../ui.js?v=b0491a1.202611151251";
+import { t, num, gel, dt, card, row } from "../ui.js?v=8532187.202611151736";
 
 export default function view(d) {
   const tx = d.tax || {}; const v = d.vat || [];
